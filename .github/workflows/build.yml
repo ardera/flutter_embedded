@@ -224,8 +224,213 @@ jobs:
             ${{ github.workspace }}/engine/src/out/build/libflutter_engine.so
             ${{ github.workspace }}/engine/src/out/build/icudtl.dat
             ${{ github.workspace }}/engine/src/out/build/flutter_embedder.h
+  
+  package:
+    name: 'Package artifacts'
+    runs-on: ubuntu-latest
+    needs: [build-engine]
+    strategy:
+      matrix:
+        artifact-name:
+          - pi4
+          - pi4-64
+          - armv7-generic
+          - aarch64-generic
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Read stable engine version
+        id: engine-version-stable
+        run: echo ::set-output name=hash::$(cat engine.version.stable)
+        
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}-debug
+          path: debug
+        
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}-profile
+          path: profile
+        
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}-release
+          path: release
+          
+      - name: Package artifacts
+        run: |
+          mkdir -p pkg
+          cd pkg
+          cp ../engine.version.stable ./engine.version
+          cp ../debug/libflutter_engine.so ./libflutter_engine.so.debug
+          cp ../profile/libflutter_engine.so ./libflutter_engine.so.profile
+          cp ../release/libflutter_engine.so ./libflutter_engine.so.release
+          cp ../debug/flutter_embedder.h ./flutter_embedder.h
+          cp ../debug/icudtl.dat ./icudtl.dat
+          cp ../profile/clang_x64/gen_snapshot ./gen_snapshot_linux_x64_profile
+          cp ../release/clang_x64/gen_snapshot ./gen_snapshot_linux_x64_release
+          XZ_DEFAULTS="-T 0" tar -cJvf ../${{ matrix.artifact-name }}.tar.xz *
+      
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}
+          path: |
+            pkg/engine.version
+            pkg/libflutter_engine.so.debug
+            pkg/libflutter_engine.so.profile
+            pkg/libflutter_engine.so.release
+            pkg/flutter_embedder.h
+            pkg/icudtl.dat
+            pkg/gen_snapshot_linux_x64_profile
+            pkg/gen_snapshot_linux_x64_release
+      
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}-tar-xz
+          path: |
+            ${{ matrix.artifact-name }}.tar.xz
+            
+  build-app:
+    name: 'Build debug, profile, release apps for testing'
+    runs-on: ubuntu-latest
+    needs: [package]
+    steps:
+      - uses: actions/checkout@v2
+      
+      - uses: flutter-actions/setup-flutter@v2
+        with:
+          channel: stable
+          cache: true
+      
+      - uses: actions/checkout@v3
+        with:
+          repository: ardera/flutter_libinput_calibrator
+          path: app-debug
+      
+      - uses: actions/checkout@v3
+        with:
+          repository: ardera/flutter_libinput_calibrator
+          path: app-profile
+      
+      - uses: actions/checkout@v3
+        with:
+          repository: ardera/flutter_libinput_calibrator
+          path: app-release
+      
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-pi4
+          path: pi4
 
-
+      - run: |
+          cd app-debug
+          flutter pub get
+          flutter build bundle
+          cp ../pi4/libflutter_engine.so.debug build/flutter_assets/libflutter_engine.so
+          cp ../pi4/icudtl.dat build/flutter_assets/
+          cp -r build/flutter-assets ../app-debug-assets
+      
+      - run: |
+          cd app-profile
+          flutter pub get
+          flutter build bundle
+          $(dirname $(which flutter))/cache/dart-sdk/bin/snapshots/frontend_server.dart.snapshot \
+            --sdk-root $(dirname $(which flutter))/cache/artifacts/engine/common/flutter_patched_sdk \
+            --target=flutter \
+            --aot --tfa \
+            -Ddart.vm.product=false \
+            -Ddart.vm.profile=true \
+            --packages .dart_tool/package_config.json \
+            --output-dill build/kernel_snapshot.dill \
+            --verbose \
+            --depfile build/kernel_snapshot.d \
+            package:flutter_libinput_calibrator/main.dart
+          ../pi4/gen_snapshot_linux_x64_release \
+            --deterministic \
+            --snapshot_kind=app-aot-elf \
+            --elf=build/flutter_assets/app.so \
+            --strip \
+            --sim-use-hardfp \
+            build/kernel_snapshot.dill
+          cp ../pi4/libflutter_engine.so.profile build/flutter_assets/libflutter_engine.so
+          cp ../pi4/icudtl.dat build/flutter_assets/
+          cp -r build/flutter-assets ../app-profile-assets
+      
+      - run: |
+          cd app-release
+          flutter pub get
+          flutter build bundle
+          $(dirname $(which flutter))/cache/dart-sdk/bin/snapshots/frontend_server.dart.snapshot \
+            --sdk-root $(dirname $(which flutter))/cache/artifacts/engine/common/flutter_patched_sdk_product \
+            --target=flutter \
+            --aot --tfa \
+            -Ddart.vm.product=true \
+            -Ddart.vm.profile=false \
+            --packages .dart_tool/package_config.json \
+            --output-dill build/kernel_snapshot.dill \
+            --verbose \
+            --depfile build/kernel_snapshot.d \
+            package:flutter_libinput_calibrator/main.dart
+          ../pi4/gen_snapshot_linux_x64_release \
+            --deterministic \
+            --snapshot_kind=app-aot-elf \
+            --elf=build/flutter_assets/app.so \
+            --strip \
+            --sim-use-hardfp \
+            build/kernel_snapshot.dill
+          cp ../pi4/libflutter_engine.so.release build/flutter_assets/libflutter_engine.so
+          cp ../pi4/icudtl.dat build/flutter_assets/
+          cp -r build/flutter-assets ../app-release-assets
+    
+      - name: upload debug artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-app-debug-assets
+          path: app-debug-assets
+          
+      - name: upload profile artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-app-profile-assets
+          path: app-profile-assets
+          
+      - name: upload release artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-app-release-assets
+          path: app-release-assets
+          
+  test-app:
+    name: 'Test app on a Raspberry Pi'
+    runs-on: [self-hosted]
+    needs: [build-app]
+    strategy:
+      matrix:
+        runtime-mode:
+          - debug
+          - profile
+          - release
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ steps.engine-version-stable.outputs.hash }}-app-${{ matrix.runtime-mode }}-assets
+          path: app
+      
+      - uses: actions/checkout@v3
+        with:
+          repository: ardera/flutter-pi
+          path: flutter-pi
+      
+      - run: |
+          cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -Sflutter-pi -Bflutter-pi/build
+          ninja
+      
+      - run: |
+          flutter-pi/build/flutter-pi --${{ matrix.runtime-mode }} app
+    
   release:
     name: 'Publish release'
     runs-on: ubuntu-latest
