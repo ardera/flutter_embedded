@@ -203,7 +203,7 @@ jobs:
             arm_tune = "${{ matrix.arm-tune }}"
            
       - name: upload artifacts (with gen_snapshot)
-        if: ${{ matrix.has-gen-snapshot != 'false' }}
+        if: ${{ matrix.has-gen-snapshot == true }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}-${{ matrix.runtime-mode }}
@@ -215,7 +215,7 @@ jobs:
             ${{ github.workspace }}/engine/src/out/build/clang_x64/gen_snapshot
       
       - name: upload artifacts (without gen_snapshot)
-        if: ${{ matrix.has-gen-snapshot != 'true' }}
+        if: ${{ matrix.has-gen-snapshot == false }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}-${{ matrix.runtime-mode }}
@@ -315,7 +315,7 @@ jobs:
         id: engine-version-stable
         run: echo ::set-output name=hash::$(cat engine.version.stable)
       
-      - uses: flutter-actions/setup-flutter@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
@@ -337,6 +337,11 @@ jobs:
         with:
           name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}
           path: binaries
+      
+      - name: Show file tree
+        run: |
+          sudo apt-get install -y tree
+          tree
       
       - working-directory: app
         run: |
@@ -391,7 +396,7 @@ jobs:
 
       - name: Copy asset bundle
         run: |
-          cp app/build/flutter_assets app-assets
+          cp -r app/build/flutter_assets app-assets
 
       - name: upload artifacts
         uses: actions/upload-artifact@v3
