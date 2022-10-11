@@ -371,10 +371,17 @@ jobs:
           name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}
           path: binaries
       
+      # Seems like this is necessary. Maybe it's not if we use a tar-file instead.
+      - name: Make binaries executable
+        working-directory: binaries
+        run: |
+          chmod +x ./libflutter_engine.so* ./gen_snapshot*
+      
+      # Show the complete file tree, and print all metadata (permissions, owner, group, filesize, last modification date)
       - name: Show file tree
         run: |
           sudo apt-get install -y tree
-          tree
+          tree -apugshDF
       
       - working-directory: app
         run: |
