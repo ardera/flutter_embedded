@@ -85,16 +85,28 @@ jobs:
         run: |
           gclient --version
           echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
-          
+      
+      - name: Check if engine has dead libcxx repo
+        id: check-dead-libcxx-repo
+        if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' }}
+        shell: bash
+        run: |
+          echo "::group::DEPS file contents"
+          wget -O - https://raw.githubusercontent.com/flutter/engine/${{ steps.engine-version-stable.outputs.hash }}/DEPS
+          echo "::endgroup::"
+          echo '::echo::on'
+          wget -O - https://raw.githubusercontent.com/flutter/engine/${{ steps.engine-version-stable.outputs.hash }}/DEPS | grep --quiet "7524ef50093a376f334a62a7e5cebf5d238d4c99" && echo '::set-output name=dead-libcxx-repo::true' || echo '::set-output name=dead-libcxx-repo::false'
+          echo '::echo::off'
+
       - name: Bootstrap engine environment
-        if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' && !startsWith(github.ref, 'refs/tags/3.3') }}
+        if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' && steps.check-dead-libcxx-repo.outputs.dead-libcxx-repo == 'false' }}
         shell: bash
         run: |
           mkdir -p engine
           cp dot-gclient.py engine/.gclient
           
-      - name: Bootstrap engine environment (with libcxx workaround)
-        if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' && startsWith(github.ref, 'refs/tags/3.3') }}
+      - name: Bootstrap engine environment (with dead libcxx repo workaround)
+        if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' && steps.check-dead-libcxx-repo.outputs.dead-libcxx-repo == 'true' }}
         shell: bash
         run: |
           mkdir -p engine
