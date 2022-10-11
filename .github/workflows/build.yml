@@ -91,18 +91,24 @@ jobs:
         if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' }}
         shell: bash
         run: |
+          echo "::group::Downloading DEPS file"
+          wget https://raw.githubusercontent.com/flutter/engine/${{ steps.engine-version-stable.outputs.hash }}/DEPS
+          echo "::endgroup::"
+          
           echo "::group::DEPS file contents"
-          wget -O - https://raw.githubusercontent.com/flutter/engine/${{ steps.engine-version-stable.outputs.hash }}/DEPS
+          cat ./DEPS
           echo "::endgroup::"
 
           echo '::echo::on'
-          if wget -O - https://raw.githubusercontent.com/flutter/engine/${{ steps.engine-version-stable.outputs.hash }}/DEPS | grep -F --quiet 7524ef50093a376f334a62a7e5cebf5d238d4c99 -
+          if grep -F "7524ef50093a376f334a62a7e5cebf5d238d4c99" ./DEPS
           then
             echo '::set-output name=dead-libcxx-repo::true'
           else
             echo '::set-output name=dead-libcxx-repo::false'
           fi
           echo '::echo::off'
+
+          rm ./DEPS
 
       - name: Bootstrap engine environment
         if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' && steps.check-dead-libcxx-repo.outputs.dead-libcxx-repo == 'false' }}
