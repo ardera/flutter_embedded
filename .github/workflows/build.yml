@@ -360,12 +360,7 @@ jobs:
       - name: Log flutter SDK path
         run: |
           echo flutter sdk path: $FLUTTER_SDK_PATH
-      
-      - uses: actions/checkout@v3
-        with:
-          repository: ardera/flutter_libinput_calibrator
-          path: app
-      
+           
       - uses: actions/download-artifact@v3
         with:
           name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}
@@ -383,7 +378,7 @@ jobs:
           sudo apt-get install -y tree
           tree -apugshDF
       
-      - working-directory: app
+      - working-directory: test_app
         run: |
           flutter pub get
           flutter build bundle
@@ -392,7 +387,7 @@ jobs:
       
       - name: Build kernel snapshot (profile)
         if: ${{ matrix.runtime-mode == 'profile' }}
-        working-directory: app
+        working-directory: test_app
         run: |
           $FLUTTER_SDK_PATH/bin/cache/dart-sdk/bin/dart \
             $FLUTTER_SDK_PATH/bin/cache/dart-sdk/bin/snapshots/frontend_server.dart.snapshot \
@@ -405,11 +400,11 @@ jobs:
             --output-dill build/kernel_snapshot.dill \
             --verbose \
             --depfile build/kernel_snapshot.d \
-            package:flutter_libinput_calibrator/main.dart
+            package:test_app/main.dart
             
       - name: Build kernel snapshot (release)
         if: ${{ matrix.runtime-mode == 'release' }}
-        working-directory: app
+        working-directory: test_app
         run: |
           $FLUTTER_SDK_PATH/bin/cache/dart-sdk/bin/dart \
             $FLUTTER_SDK_PATH/bin/cache/dart-sdk/bin/snapshots/frontend_server.dart.snapshot \
@@ -422,12 +417,12 @@ jobs:
             --output-dill build/kernel_snapshot.dill \
             --verbose \
             --depfile build/kernel_snapshot.d \
-            package:flutter_libinput_calibrator/main.dart
+            package:test_app/main.dart
       
       # Specify --sim-use-hardfp if we're building for armv7.
       - name: Build app.so (armv7)
         if: ${{ (matrix.runtime-mode == 'profile' || matrix.runtime-mode == 'release') && (matrix.arch == 'armv7') }}
-        working-directory: app
+        working-directory: test_app
         run: |
           ../binaries/gen_snapshot_linux_x64_${{ matrix.runtime-mode }} \
             --deterministic \
@@ -440,7 +435,7 @@ jobs:
 
       - name: Build app.so (aarch64)
         if: ${{ (matrix.runtime-mode == 'profile' || matrix.runtime-mode == 'release') && (matrix.arch == 'aarch64') }}
-        working-directory: app
+        working-directory: test_app
         run: |
           ../binaries/gen_snapshot_linux_x64_${{ matrix.runtime-mode }} \
             --deterministic \
@@ -452,7 +447,7 @@ jobs:
             
       - name: Copy asset bundle
         run: |
-          cp -r app/build/flutter_assets app-assets
+          cp -r test_app/build/flutter_assets app-assets
 
       - name: upload artifacts
         uses: actions/upload-artifact@v3
@@ -490,11 +485,26 @@ jobs:
           repository: ardera/flutter-pi
           path: flutter-pi
       
-      - run: |
-          cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -Sflutter-pi -Bflutter-pi/build
-          ninja
+      - name: Configure
+        working-directory: flutter-pi
+        run: |
+          cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -S. -Bbuild
       
-      - run: |
+      - name: Build
+        working-directory: flutter-pi/build
+        run: ninja
+      
+      # The app should quit with exit code 0 by itself.
+      - name: Run app (debug)
+        if: ${{ matrix.runtime-mode == 'debug' }}
+        timeout-minutes: 3
+        run: |
+          flutter-pi/build/flutter-pi app
+      
+      - name: Run app (profile / release)
+        if: ${{ matrix.runtime-mode == 'profile' || matrix.runtime-mode == 'release' }}
+        timeout-minutes: 3
+        run: |
           flutter-pi/build/flutter-pi --${{ matrix.runtime-mode }} app
   
   test-app-pi4-64bit:
@@ -528,11 +538,26 @@ jobs:
           repository: ardera/flutter-pi
           path: flutter-pi
       
-      - run: |
-          cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -Sflutter-pi -Bflutter-pi/build
-          ninja
+      - name: Configure
+        working-directory: flutter-pi
+        run: |
+          cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -S. -Bbuild
       
-      - run: |
+      - name: Build
+        working-directory: flutter-pi/build
+        run: ninja
+      
+      # The app should quit with exit code 0 by itself.
+      - name: Run app (debug)
+        if: ${{ matrix.runtime-mode == 'debug' }}
+        timeout-minutes: 3
+        run: |
+          flutter-pi/build/flutter-pi app
+      
+      - name: Run app (profile / release)
+        if: ${{ matrix.runtime-mode == 'profile' || matrix.runtime-mode == 'release' }}
+        timeout-minutes: 3
+        run: |
           flutter-pi/build/flutter-pi --${{ matrix.runtime-mode }} app
     
   release:
