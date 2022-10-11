@@ -331,7 +331,7 @@ jobs:
         runtime-mode:
           - debug
           - profile
-          - stable
+          - release
     steps:
       - uses: actions/checkout@v3
       
@@ -430,7 +430,7 @@ jobs:
           
   test-app-pi4-32bit:
     name: 'Test app on a Raspberry Pi (32-bit)'
-    runs-on: [self-hosted]
+    runs-on: [ARM]
     needs: [build-app]
     strategy:
       matrix:
@@ -467,7 +467,7 @@ jobs:
   
   test-app-pi4-64bit:
     name: 'Test app on a Raspberry Pi (64-bit)'
-    runs-on: [self-hosted]
+    runs-on: [ARM64]
     needs: [build-app]
     if: false
     strategy:
