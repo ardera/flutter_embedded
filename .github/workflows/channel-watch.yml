@@ -44,7 +44,7 @@ jobs:
       
       - name: Log
         run: |
-          echo *** Stable engine commit changed? ***
+          echo '*** Stable engine commit changed? ***'
           echo steps.check-roll.outputs.changed: ${{ steps.check-roll.outputs.changed }}
       
       - uses: actions/cache@v3
