@@ -20,8 +20,9 @@ jobs:
       changed: ${{ steps.check-roll.outputs.changed }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
+          # We need to use a custom token here to be able to push commits.
           token: ${{ secrets.ENGINE_ROLL_TOKEN }}
       
       # If we only want to find out the stable engine version, we can do `wget -O engine.version.stable https://raw.githubusercontent.com/flutter/flutter/stable/bin/internal/engine.version`
