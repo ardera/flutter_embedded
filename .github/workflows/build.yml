@@ -26,7 +26,7 @@ jobs:
 
         # Read the engine.version.stable file and trim away anything that's not a hex digit
         # (So we don't include whitespace in the output variable, if that's possible)
-        run: echo ::set-output name=hash::$(cat engine.version.stable | tr -dc [:xdigit:])
+        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
       
       - name: Log stable engine version
         run: |
@@ -208,8 +208,8 @@ jobs:
       
       - name: Read stable engine version
         id: engine-version-stable
-        run: echo ::set-output name=hash::$(cat engine.version.stable)
-        
+        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
+
       - name: Log engine version
         run: |
           echo *** engine version: ***
@@ -263,6 +263,12 @@ jobs:
           - armv7-generic
           - aarch64-generic
     steps:
+      - uses: actions/checkout@v3
+      
+      - name: Read stable engine version
+        id: engine-version-stable
+        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
+        
       - uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.artifact-name }}-debug
@@ -356,7 +362,7 @@ jobs:
            
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ steps.engine-version-stable.outputs.hash }}-${{ matrix.artifact-name }}
+          name: ${{ matrix.artifact-name }}
           path: binaries
       
       # Seems like this is necessary. Maybe it's not if we use a tar-file instead.
