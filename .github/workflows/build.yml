@@ -177,18 +177,38 @@ jobs:
           - profile
           - release
         include:
+          # debugdebug is a debug build with -O0 and -ggdb
           - flavor: debugdebug
             runtime-mode: debug
             unoptimized-nostripped: true
+            has-gen-snapshot: false
+          
           - flavor: debug
             runtime-mode: debug
             unoptimized-nostripped: false
+            has-gen-snapshot: false
+          
           - flavor: profile
             runtime-mode: profile
             unoptimized-nostripped: false
+            has-gen-snapshot: true
+          
           - flavor: release
             runtime-mode: release
             unoptimized-nostripped: false
+            has-gen-snapshot: true
+            
+          # Pi 3 is a Cortex A53.
+          # -mcpu=cortex-a53 -mtune=cortex-a53
+          - artifact-name: pi3
+            cpu: arm
+            arm-cpu: cortex-a53
+            arm-tune: cortex-a53
+          
+          - artifact-name: pi3-64
+            cpu: arm64
+            arm-cpu: cortex-a53
+            arm-tune: cortex-a53
             
           # Pi 3 is a Cortex A53.
           # -mcpu=cortex-a53 -mtune=cortex-a53
@@ -224,13 +244,6 @@ jobs:
             cpu: arm64
             arm-cpu: generic
             arm-tune: generic
-            
-          - runtime-mode: debug
-            has-gen-snapshot: false
-          - runtime-mode: profile
-            has-gen-snapshot: true
-          - runtime-mode: release
-            has-gen-snapshot: true
           
     steps:
       - uses: actions/checkout@v3
