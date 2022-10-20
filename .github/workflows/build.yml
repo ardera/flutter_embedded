@@ -177,6 +177,7 @@ jobs:
           - profile
           - release
         include:
+          # apparently having too convulated matrix includes confuses GitHub
           # debugdebug is a debug build with -O0 and -ggdb
           - flavor: debugdebug
             runtime-mode: debug
