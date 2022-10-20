@@ -252,11 +252,19 @@ jobs:
         id: engine-version-stable
         run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
 
-      - name: Log engine version
+      - name: Log engine version & Build config
         run: |
           echo *** engine version: ***
           echo ${{ steps.engine-version-stable.outputs.hash }}
-      
+          echo '*** build config: ***'
+          echo artifact name: ${{ matrix.artifact-name }}
+          echo flavor: ${{ matrix.flavor }}
+          echo flutter runtime mode: ${{ matrix.runtime-mode }}
+          echo has gen_snapshot: ${{ matrix.has-gen-snapshot }}
+          echo cpu: ${{ matrix.cpu }}
+          echo arm-cpu: ${{ matrix.arm-cpu }}
+          echo arm-tune: ${{ matrix.arm-tune }}
+          
       - name: Build engine
         uses: ./.github/actions/build-engine
         if: ${{ matrix.unoptimized-nostripped == false }}
