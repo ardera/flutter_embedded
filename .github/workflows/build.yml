@@ -595,7 +595,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.artifact-name }}-${{ matrix.runtime-mode }}-app-assets
+          name: ${{ matrix.artifact-name }}-${{ matrix.flavor }}-app-assets
           path: app
       
       - uses: actions/checkout@v3
