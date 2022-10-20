@@ -171,11 +171,25 @@ jobs:
           - pi4-64
           - armv7-generic
           - aarch64-generic
-        runtime-mode:
+        flavor:
+          - debugdebug
           - debug
           - profile
           - release
         include:
+          - flavor: debugdebug
+            runtime-mode: debug
+            unoptimized-nostripped: true
+          - flavor: debug
+            runtime-mode: debug
+            unoptimized-nostripped: false
+          - flavor: profile
+            runtime-mode: profile
+            unoptimized-nostripped: false
+          - flavor: release
+            runtime-mode: release
+            unoptimized-nostripped: false
+            
           # Pi 3 is a Cortex A53.
           # -mcpu=cortex-a53 -mtune=cortex-a53
           - artifact-name: pi3
@@ -217,6 +231,7 @@ jobs:
             has-gen-snapshot: true
           - runtime-mode: release
             has-gen-snapshot: true
+          
     steps:
       - uses: actions/checkout@v3
       
@@ -231,6 +246,7 @@ jobs:
       
       - name: Build engine
         uses: ./.github/actions/build-engine
+        if: ${{ matrix.unoptimized-nostripped == false }}
         with:
           ref: "${{ steps.engine-version-stable.outputs.hash  }}"
           is-host: false
@@ -241,7 +257,21 @@ jobs:
           additional-raw-gn-args: |
             arm_cpu = "${{ matrix.arm-cpu }}"
             arm_tune = "${{ matrix.arm-tune }}"
-            
+       
+      - name: Build engine (unoptimized, debug symbols)
+        uses: ./.github/actions/build-engine
+        if: ${{ matrix.unoptimized-nostripped == true }}
+        with:
+          ref: "${{ steps.engine-version-stable.outputs.hash  }}"
+          is-host: false
+          runtime-mode: ${{ matrix.runtime-mode }}
+          os: linux
+          cpu: ${{ matrix.cpu }}
+          additional-gn-args: '--embedder-for-target --disable-desktop-embeddings --no-build-glfw-shell --no-build-embedder-examples --no-goma --unoptimized --no-stripped'
+          additional-raw-gn-args: |
+            arm_cpu = "${{ matrix.arm-cpu }}"
+            arm_tune = "${{ matrix.arm-tune }}"
+           
       - name: Add engine.version and dart-sdk.version file
         run: |
           cp engine.version.stable ${{ github.workspace }}/engine/src/out/build/engine.version
@@ -253,7 +283,7 @@ jobs:
         if: ${{ matrix.has-gen-snapshot == true }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.artifact-name }}-${{ matrix.runtime-mode }}
+          name: ${{ matrix.artifact-name }}-${{ matrix.flavor }}
           path: |
             ${{ github.workspace }}/engine/src/out/build/compile_commands.json
             ${{ github.workspace }}/engine/src/out/build/libflutter_engine.so
@@ -267,7 +297,7 @@ jobs:
         if: ${{ matrix.has-gen-snapshot == false }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.artifact-name }}-${{ matrix.runtime-mode }}
+          name: ${{ matrix.artifact-name }}-${{ matrix.flavor }}
           path: |
             ${{ github.workspace }}/engine/src/out/build/compile_commands.json
             ${{ github.workspace }}/engine/src/out/build/libflutter_engine.so
@@ -300,6 +330,11 @@ jobs:
         with:
           name: ${{ matrix.artifact-name }}-debug
           path: debug
+      
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.artifact-name }}-debugdebug
+          path: debugdebug
         
       - uses: actions/download-artifact@v3
         with:
@@ -317,6 +352,7 @@ jobs:
           cd pkg
           cp ../engine.version.stable ./engine.version
           cp ../debug/libflutter_engine.so ./libflutter_engine.so.debug
+          cp ../debugdebug/libflutter_engine.so ./libflutter_engine.so.debugdebug
           cp ../profile/libflutter_engine.so ./libflutter_engine.so.profile
           cp ../release/libflutter_engine.so ./libflutter_engine.so.release
           cp ../debug/flutter_embedder.h ./flutter_embedder.h
@@ -327,6 +363,20 @@ jobs:
           cp ../release/clang_x64/gen_snapshot ./gen_snapshot_linux_x64_release
           XZ_DEFAULTS="-T 0" tar -cJvf ../${{ matrix.artifact-name }}.tar.xz *
       
+      # The github actions artifact uploader/downloader don't keep the file permissions, so we need to mak
+      # the binaries executable again.
+      # We tar the files afterwards though, which keeps the permissions.
+      - name: Make binaries executable
+        working-directory: pkg
+        run: |
+          chmod +x ./libflutter_engine.so* ./gen_snapshot*
+      
+      # Show the complete file tree, and print all metadata (permissions, owner, group, filesize, last modification date)
+      - name: Show file tree
+        run: |
+          sudo apt-get install -y tree
+          tree -apugshDF
+      
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -334,6 +384,7 @@ jobs:
           path: |
             pkg/engine.version
             pkg/libflutter_engine.so.debug
+            pkg/libflutter_engine.so.debugdebug
             pkg/libflutter_engine.so.profile
             pkg/libflutter_engine.so.release
             pkg/flutter_embedder.h
@@ -363,11 +414,21 @@ jobs:
           - pi4-64
           - armv7-generic
           - aarch64-generic
-        runtime-mode:
+        flavor:
+          - debugdebug
           - debug
           - profile
           - release
         include:
+          - flavor: debugdebug
+            runtime-mode: debug
+          - flavor: debug
+            runtime-mode: debug
+          - flavor: profile
+            runtime-mode: profile
+          - flavor: release
+            runtime-mode: release
+          
           - artifact-name: pi3
             arch: armv7
           - artifact-name: pi3-64
@@ -488,7 +549,7 @@ jobs:
       - name: Upload app assets
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.artifact-name }}-${{ matrix.runtime-mode }}-app-assets
+          name: ${{ matrix.artifact-name }}-${{ matrix.flavor }}-app-assets
           path: app-assets
           
   test-app:
@@ -504,11 +565,21 @@ jobs:
           - pi4-64
           - armv7-generic
           - aarch64-generic
-        runtime-mode:
+        flavor:
+          - debugdebug
           - debug
           - profile
           - release
         include:
+          - flavor: debugdebug
+            runtime-mode: debug
+          - flavor: debug
+            runtime-mode: debug
+          - flavor: profile
+            runtime-mode: profile
+          - flavor: release
+            runtime-mode: release
+
           - artifact-name: pi3
             runner: pi4-32
           - artifact-name: pi3-64
