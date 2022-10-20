@@ -479,7 +479,7 @@ jobs:
         run: |
           flutter pub get
           flutter build bundle
-          cp ../binaries/libflutter_engine.so.${{ matrix.runtime-mode }} build/flutter_assets/libflutter_engine.so
+          cp ../binaries/libflutter_engine.so.${{ matrix.flavor }} build/flutter_assets/libflutter_engine.so
           cp ../binaries/icudtl.dat build/flutter_assets/
       
       - name: Build kernel snapshot (profile)
