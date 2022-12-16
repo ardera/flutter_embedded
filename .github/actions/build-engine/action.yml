@@ -62,6 +62,8 @@ runs:
     - name: Download cached engine sources
       uses: actions/cache@v3
       id: cache
+      env:
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
       with:
         path: engine
         key: engine-${{ inputs.ref }}
