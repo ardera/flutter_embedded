@@ -102,9 +102,9 @@ jobs:
           echo '::echo::on'
           if grep -F "7524ef50093a376f334a62a7e5cebf5d238d4c99" ./DEPS
           then
-            echo '::set-output name=dead-libcxx-repo::true'
+            echo 'dead-libcxx-repo=true' >> $GITHUB_OUTPUT
           else
-            echo '::set-output name=dead-libcxx-repo::false'
+            echo 'dead-libcxx-repo=false' >> $GITHUB_OUTPUT
           fi
           echo '::echo::off'
 
