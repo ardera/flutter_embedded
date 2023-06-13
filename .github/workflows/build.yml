@@ -1,4 +1,4 @@
-name: build engine for pi4
+name: build engine for Raspberry Pi 3 & 4 and generic ARMv7 & AArch64. 
 
 on:
   push:
@@ -165,6 +165,8 @@ jobs:
     strategy:
       matrix:
         artifact-name:
+          - pi3
+          - pi3-64
           - pi4
           - pi4-64
           - armv7-generic
@@ -174,6 +176,18 @@ jobs:
           - profile
           - release
         include:
+          # Pi 3 is a Cortex A53.
+          # -mcpu=cortex-a53 -mtune=cortex-a53
+          - artifact-name: pi3
+            cpu: arm
+            arm-cpu: cortex-a53
+            arm-tune: cortex-a53
+          
+          - artifact-name: pi3-64
+            cpu: arm64
+            arm-cpu: cortex-a53
+            arm-tune: cortex-a53
+            
           # Pi 4 is a Cortex-A72, but doesn't support cryptography instructions.
           # Use -mcpu=cortex-a72+nocrypto -mtune=cortex-a72
           - artifact-name: pi4
@@ -196,7 +210,7 @@ jobs:
             cpu: arm64
             arm-cpu: generic
             arm-tune: generic
-
+            
           - runtime-mode: debug
             has-gen-snapshot: false
           - runtime-mode: profile
@@ -269,6 +283,8 @@ jobs:
     strategy:
       matrix:
         artifact-name:
+          - pi3
+          - pi3-64
           - pi4
           - pi4-64
           - armv7-generic
@@ -341,6 +357,8 @@ jobs:
     strategy:
       matrix:
         artifact-name:
+          - pi3
+          - pi3-64
           - pi4
           - pi4-64
           - armv7-generic
@@ -350,6 +368,10 @@ jobs:
           - profile
           - release
         include:
+          - artifact-name: pi3
+            arch: armv7
+          - artifact-name: pi3-64
+            arch: aarch64
           - artifact-name: pi4
             arch: armv7
           - artifact-name: pi4-64
@@ -476,6 +498,8 @@ jobs:
     strategy:
       matrix:
         artifact-name:
+          - pi3
+          - pi3-64
           - pi4
           - pi4-64
           - armv7-generic
@@ -485,6 +509,10 @@ jobs:
           - profile
           - release
         include:
+          - artifact-name: pi3
+            runner: ARM
+          - artifact-name: pi3-64
+            runner: ARM64
           - artifact-name: pi4
             runner: ARM
           - artifact-name: pi4-64
@@ -615,7 +643,15 @@ jobs:
         run: |
           echo *** engine version: ***
           echo ${{ steps.engine-version-stable.outputs.hash }}
-          
+      
+      - uses: actions/download-artifact@v3
+        with:
+          name: pi3-tar-xz
+      
+      - uses: actions/download-artifact@v3
+        with:
+          name: pi3-64-tar-xz
+      
       - uses: actions/download-artifact@v3
         with:
           name: pi4-tar-xz
@@ -648,6 +684,8 @@ jobs:
             | engine commit | `${{ steps.engine-version-stable.outputs.hash }}` | https://github.com/flutter/engine/commit/${{ steps.engine-version-stable.outputs.hash }} |
           fail_on_unmatched_files: true
           files: |
+            pi3.tar.xz
+            pi3-64.tar.xz
             pi4.tar.xz
             pi4-64.tar.xz
             armv7-generic.tar.xz
