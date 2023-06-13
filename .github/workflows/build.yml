@@ -510,17 +510,17 @@ jobs:
           - release
         include:
           - artifact-name: pi3
-            runner: ARM
+            runner: pi4-32
           - artifact-name: pi3-64
-            runner: ARM64
+            runner: pi4-64
           - artifact-name: pi4
-            runner: ARM
+            runner: pi4-32
           - artifact-name: pi4-64
-            runner: ARM64
+            runner: pi4-64
           - artifact-name: armv7-generic
-            runner: ARM
+            runner: pi4-32
           - artifact-name: aarch64-generic
-            runner: ARM64
+            runner: pi4-64
     steps:
       - uses: actions/download-artifact@v3
         with:
