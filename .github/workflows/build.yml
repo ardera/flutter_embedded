@@ -381,26 +381,22 @@ jobs:
           - aarch64-generic
         
         include:
-          - artifact-name: pi3
-            arch: armv7
-          - artifact-name: pi3-64
-            arch: aarch64
-          - artifact-name: pi4
-            arch: armv7
-          - artifact-name: pi4-64
-            arch: aarch64
-          - artifact-name: armv7-generic
-            arch: armv7
-          - artifact-name: aarch64-generic
-            arch: aarch64
-          
           # For each artifact (target), we also have an architecture-generic variant.
           # We use those for debug & debug_unopt, since we don't actually build architecture-specific
           # artifacts there.
-          - arch: armv7
+          - artifact-name: pi3
             generic-arch-artifact-name: armv7-generic
-          
-          - arch: aarch64
+          - artifact-name: pi3-64
+            generic-arch-artifact-name: aarch64-generic
+
+          - artifact-name: pi4
+            generic-arch-artifact-name: armv7-generic
+          - artifact-name: pi4-64
+            generic-arch-artifact-name: aarch64-generic
+
+          - artifact-name: armv7-generic
+            generic-arch-artifact-name: armv7-generic
+          - artifact-name: aarch64-generic
             generic-arch-artifact-name: aarch64-generic
     steps:
       - uses: actions/checkout@v3
@@ -408,7 +404,15 @@ jobs:
       - name: Read stable engine version
         id: engine-version-stable
         run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
-        
+      
+      - name: Log engine version & Build config
+        run: |
+          echo *** engine version: ***
+          echo ${{ steps.engine-version-stable.outputs.hash }}
+          echo '*** config: ***'
+          echo artifact name: ${{ matrix.artifact-name }}
+          echo generic-arch-artifact-name: ${{ matrix.generic-arch-artifact-name }}
+
       - uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.generic-arch-artifact-name }}-debug
@@ -469,6 +473,7 @@ jobs:
             pkg/engine.version
             pkg/libflutter_engine.so.debug
             pkg/libflutter_engine.so.debug_unopt
+            pkg/libflutter_engine.dgbsyms
             pkg/libflutter_engine.so.profile
             pkg/libflutter_engine.so.release
             pkg/flutter_embedder.h
