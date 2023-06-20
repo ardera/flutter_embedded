@@ -135,4 +135,4 @@ runs:
       shell: bash
       working-directory: engine/src/out/build
       run: |
-        ninja
+        ninja libflutter_engine.so clang_x64/gen_snapshot flutter_embedder.h icudtl.dat
