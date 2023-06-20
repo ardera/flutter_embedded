@@ -165,6 +165,10 @@ jobs:
     strategy:
       matrix:
         artifact-name:
+          - pi3
+          - pi3-64
+          - pi4
+          - pi4-64
           - armv7-generic
           - aarch64-generic
         flavor:
@@ -172,33 +176,33 @@ jobs:
           - debug
           - profile
           - release
-        include:
+        exclude:
           # for pi3, pi3-64, pi4, pi4-64 we only build the profile and release flavors.
           # you the point of the pi3, pi4 specific artifacts is CPU-specific optimizations & tuning.
           # (-mcpu, -mtune)
           # You don't need CPU-specific optimizations for (unoptimized) debug builds.
           # Instead, reuse the armv7-generic and aarch64-generic binaries there.
           - artifact-name: pi3
-            flavor: profile
+            flavor: debug_unopt
           - artifact-name: pi3
-            flavor: release
+            flavor: debug
           
           - artifact-name: pi3-64
-            flavor: profile
+            flavor: debug_unopt
           - artifact-name: pi3-64
-            flavor: release
+            flavor: debug
           
           - artifact-name: pi4
-            flavor: profile
+            flavor: debug_unopt
           - artifact-name: pi4
-            flavor: release
+            flavor: debug
           
           - artifact-name: pi4-64
-            flavor: profile
+            flavor: debug_unopt
           - artifact-name: pi4-64
-            flavor: release
-
-          # apparently having too convulated matrix includes confuses GitHub
+            flavor: debug
+          
+        include:
           # debug_unopt is a debug build with -O0 and -ggdb -fdebug-default-version=4
           - flavor: debug_unopt
             runtime-mode: debug
