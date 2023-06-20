@@ -165,10 +165,6 @@ jobs:
     strategy:
       matrix:
         artifact-name:
-          - pi3
-          - pi3-64
-          - pi4
-          - pi4-64
           - armv7-generic
           - aarch64-generic
         flavor:
@@ -177,6 +173,31 @@ jobs:
           - profile
           - release
         include:
+          # for pi3, pi3-64, pi4, pi4-64 we only build the profile and release flavors.
+          # you the point of the pi3, pi4 specific artifacts is CPU-specific optimizations & tuning.
+          # (-mcpu, -mtune)
+          # You don't need CPU-specific optimizations for (unoptimized) debug builds.
+          # Instead, reuse the armv7-generic and aarch64-generic binaries there.
+          - artifact-name: pi3
+            flavor: profile
+          - artifact-name: pi3
+            flavor: release
+          
+          - artifact-name: pi3-64
+            flavor: profile
+          - artifact-name: pi3-64
+            flavor: release
+          
+          - artifact-name: pi4
+            flavor: profile
+          - artifact-name: pi4
+            flavor: release
+          
+          - artifact-name: pi4-64
+            flavor: profile
+          - artifact-name: pi4-64
+            flavor: release
+
           # apparently having too convulated matrix includes confuses GitHub
           # debug_unopt is a debug build with -O0 and -ggdb -fdebug-default-version=4
           - flavor: debug_unopt
@@ -354,6 +375,29 @@ jobs:
           - pi4-64
           - armv7-generic
           - aarch64-generic
+        
+        include:
+          - artifact-name: pi3
+            arch: armv7
+          - artifact-name: pi3-64
+            arch: aarch64
+          - artifact-name: pi4
+            arch: armv7
+          - artifact-name: pi4-64
+            arch: aarch64
+          - artifact-name: armv7-generic
+            arch: armv7
+          - artifact-name: aarch64-generic
+            arch: aarch64
+          
+          # For each artifact (target), we also have an architecture-generic variant.
+          # We use those for debug & debug_unopt, since we don't actually build architecture-specific
+          # artifacts there.
+          - arch: armv7
+            generic-arch-artifact-name: armv7-generic
+          
+          - arch: aarch64
+            generic-arch-artifact-name: aarch64-generic
     steps:
       - uses: actions/checkout@v3
       
@@ -363,12 +407,12 @@ jobs:
         
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.artifact-name }}-debug
+          name: ${{ matrix.generic-arch-artifact-name }}-debug
           path: debug
       
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.artifact-name }}-debug_unopt
+          name: ${{ matrix.generic-arch-artifact-name }}-debug_unopt
           path: debug_unopt
         
       - uses: actions/download-artifact@v3
