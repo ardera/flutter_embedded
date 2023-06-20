@@ -309,8 +309,8 @@ jobs:
         if: ${{ matrix.split-debug-symbols == true }}
         working-directory: ${{ github.workspace }}/engine/src/out/build/
         run: |
-          objcopy --only-keep-debug libflutter_engine.so libflutter_engine.dbgsyms
-          objcopy --strip-debug --add-gnu-debuglink=libflutter_engine.dbgsyms libflutter_engine.so
+          ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --only-keep-debug libflutter_engine.so libflutter_engine.dbgsyms
+          ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --strip-all --add-gnu-debuglink=libflutter_engine.dbgsyms libflutter_engine.so
 
       - name: Upload artifacts (with gen_snapshot)
         if: ${{ matrix.has-gen-snapshot == true }}
