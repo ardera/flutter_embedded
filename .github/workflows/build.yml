@@ -172,31 +172,35 @@ jobs:
           - armv7-generic
           - aarch64-generic
         flavor:
-          - debugdebug
+          - debug_unopt
           - debug
           - profile
           - release
         include:
           # apparently having too convulated matrix includes confuses GitHub
-          # debugdebug is a debug build with -O0 and -ggdb
-          - flavor: debugdebug
+          # debug_unopt is a debug build with -O0 and -ggdb -fdebug-default-version=4
+          - flavor: debug_unopt
             runtime-mode: debug
             unoptimized-nostripped: true
+            split-debug-symbols: true
             has-gen-snapshot: false
           
           - flavor: debug
             runtime-mode: debug
             unoptimized-nostripped: false
+            split-debug-symbols: false
             has-gen-snapshot: false
           
           - flavor: profile
             runtime-mode: profile
             unoptimized-nostripped: false
+            split-debug-symbols: false
             has-gen-snapshot: true
           
           - flavor: release
             runtime-mode: release
             unoptimized-nostripped: false
+            split-debug-symbols: false
             has-gen-snapshot: true
             
           # Pi 3 is a Cortex A53.
@@ -300,7 +304,14 @@ jobs:
           pushd ${{ github.workspace }}/engine/src/third_party/dart
           git rev-parse HEAD > ${{ github.workspace }}/engine/src/out/build/dart-sdk.version
           popd
-     
+      
+      - name: Split debug symbols
+        if: ${{ matrix.split-debug-symbols == true }}
+        working-directory: ${{ github.workspace }}/engine/src/out/build/
+        run: |
+          objcopy --only-keep-debug libflutter_engine.so libflutter_engine.dbgsyms
+          objcopy --strip-debug --add-gnu-debuglink=libflutter_engine.dbgsyms libflutter_engine.so
+
       - name: Upload artifacts (with gen_snapshot)
         if: ${{ matrix.has-gen-snapshot == true }}
         uses: actions/upload-artifact@v3
@@ -309,6 +320,7 @@ jobs:
           path: |
             ${{ github.workspace }}/engine/src/out/build/compile_commands.json
             ${{ github.workspace }}/engine/src/out/build/libflutter_engine.so
+            ${{ github.workspace }}/engine/src/out/build/libflutter_engine.dbgsyms
             ${{ github.workspace }}/engine/src/out/build/icudtl.dat
             ${{ github.workspace }}/engine/src/out/build/flutter_embedder.h
             ${{ github.workspace }}/engine/src/out/build/clang_x64/gen_snapshot
@@ -323,6 +335,7 @@ jobs:
           path: |
             ${{ github.workspace }}/engine/src/out/build/compile_commands.json
             ${{ github.workspace }}/engine/src/out/build/libflutter_engine.so
+            ${{ github.workspace }}/engine/src/out/build/libflutter_engine.dbgsyms
             ${{ github.workspace }}/engine/src/out/build/icudtl.dat
             ${{ github.workspace }}/engine/src/out/build/flutter_embedder.h
             ${{ github.workspace }}/engine/src/out/build/engine.version
@@ -355,8 +368,8 @@ jobs:
       
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.artifact-name }}-debugdebug
-          path: debugdebug
+          name: ${{ matrix.artifact-name }}-debug_unopt
+          path: debug_unopt
         
       - uses: actions/download-artifact@v3
         with:
@@ -374,7 +387,8 @@ jobs:
           cd pkg
           cp ../engine.version.stable ./engine.version
           cp ../debug/libflutter_engine.so ./libflutter_engine.so.debug
-          cp ../debugdebug/libflutter_engine.so ./libflutter_engine.so.debugdebug
+          cp ../debug_unopt/libflutter_engine.so ./libflutter_engine.so.debug_unopt
+          cp ../debug_unopt/libflutter_engine.dbgsyms ./libflutter_engine.dbgsyms
           cp ../profile/libflutter_engine.so ./libflutter_engine.so.profile
           cp ../release/libflutter_engine.so ./libflutter_engine.so.release
           cp ../debug/flutter_embedder.h ./flutter_embedder.h
@@ -406,7 +420,7 @@ jobs:
           path: |
             pkg/engine.version
             pkg/libflutter_engine.so.debug
-            pkg/libflutter_engine.so.debugdebug
+            pkg/libflutter_engine.so.debug_unopt
             pkg/libflutter_engine.so.profile
             pkg/libflutter_engine.so.release
             pkg/flutter_embedder.h
@@ -437,12 +451,12 @@ jobs:
           - armv7-generic
           - aarch64-generic
         flavor:
-          - debugdebug
+          - debug_unopt
           - debug
           - profile
           - release
         include:
-          - flavor: debugdebug
+          - flavor: debug_unopt
             runtime-mode: debug
           - flavor: debug
             runtime-mode: debug
@@ -588,12 +602,12 @@ jobs:
           - armv7-generic
           - aarch64-generic
         flavor:
-          - debugdebug
+          - debug_unopt
           - debug
           - profile
           - release
         include:
-          - flavor: debugdebug
+          - flavor: debug_unopt
             runtime-mode: debug
           - flavor: debug
             runtime-mode: debug
@@ -783,5 +797,3 @@ jobs:
             pi4-64.tar.xz
             armv7-generic.tar.xz
             aarch64-generic.tar.xz
-  
-    
