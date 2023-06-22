@@ -314,7 +314,7 @@ jobs:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
         with:
           path: engine
-          key: engine-${{ inputs.ref }}
+          key: engine-${{ steps.engine-version-stable.outputs.hash }}
   
       - name: Check if downloading engine sources succeeded
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
