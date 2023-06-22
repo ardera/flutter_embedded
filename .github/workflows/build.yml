@@ -393,7 +393,8 @@ jobs:
         working-directory: ${{ github.workspace }}/engine/src/out/build/
         run: |
           ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --only-keep-debug libflutter_engine.so libflutter_engine.${{ matrix.flavor }}.dbgsyms
-          ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --strip-all --add-gnu-debuglink=libflutter_engine.${{ matrix.flavor }}.dbgsyms libflutter_engine.so
+          ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --strip-debug libflutter_engine.so
+          ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --add-gnu-debuglink=libflutter_engine.${{ matrix.flavor }}.dbgsyms libflutter_engine.so
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
