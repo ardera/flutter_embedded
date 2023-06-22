@@ -205,22 +205,22 @@ jobs:
           - flavor: debug
             runtime-mode: debug
             unoptimized: false
-            nostripped: false
-            split-debug-symbols: false
+            nostripped: true
+            split-debug-symbols: true
             has-gen-snapshot: false
           
           - flavor: profile
             runtime-mode: profile
             unoptimized: false
-            nostripped: false
-            split-debug-symbols: false
+            nostripped: true
+            split-debug-symbols: true
             has-gen-snapshot: true
           
           - flavor: release
             runtime-mode: release
             unoptimized: false
-            nostripped: false
-            split-debug-symbols: false
+            nostripped: true
+            split-debug-symbols: true
             has-gen-snapshot: true
             
           # Pi 3 is a Cortex A53.
@@ -483,8 +483,11 @@ jobs:
           cp ../debug_unopt/libflutter_engine.so ./libflutter_engine.so.debug_unopt
           cp ../debug_unopt/libflutter_engine.debug_unopt.dbgsyms ./libflutter_engine.debug_unopt.dbgsyms
           cp ../debug/libflutter_engine.so ./libflutter_engine.so.debug
+          cp ../debug/libflutter_engine.debug.dbgsyms ./libflutter_engine.debug.dbgsyms
           cp ../profile/libflutter_engine.so ./libflutter_engine.so.profile
+          cp ../profile/libflutter_engine.profile.dbgsyms ./libflutter_engine.profile.dbgsyms
           cp ../release/libflutter_engine.so ./libflutter_engine.so.release
+          cp ../release/libflutter_engine.release.dbgsyms ./libflutter_engine.release.dbgsyms
           cp ../debug/flutter_embedder.h ./flutter_embedder.h
           cp ../debug/icudtl.dat ./icudtl.dat
           cp ../debug/engine.version ./engine.version
@@ -513,11 +516,14 @@ jobs:
           name: ${{ matrix.artifact-name }}
           path: |
             pkg/engine.version
-            pkg/libflutter_engine.so.debug
             pkg/libflutter_engine.so.debug_unopt
-            pkg/libflutter_engine.dgbsyms
+            pkg/libflutter_engine.debug_unopt.dgbsyms
+            pkg/libflutter_engine.so.debug
+            pkg/libflutter_engine.debug.dgbsyms
             pkg/libflutter_engine.so.profile
+            pkg/libflutter_engine.profile.dgbsyms
             pkg/libflutter_engine.so.release
+            pkg/libflutter_engine.release.dgbsyms
             pkg/flutter_embedder.h
             pkg/icudtl.dat
             pkg/engine.version
@@ -795,6 +801,10 @@ jobs:
         run: |
           mv arm/flutter_embedder.h flutter_embedder.h
           rm arm64/flutter_embedder.h
+          rm arm/*.debug_unopt
+          rm arm/*.dbgsyms
+          rm arm64/*.debug_unopt
+          rm arm64/*.dbgsyms
      
       - name: Log flutter version
         run: |
