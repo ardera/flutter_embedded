@@ -1,7 +1,7 @@
-From 6685438754a765ae7eca5c896b12bca5dd42e27a Mon Sep 17 00:00:00 2001
+From 66d13274d3e0214a334a89c317ca91767c874131 Mon Sep 17 00:00:00 2001
 From: Hannes Winkler <hanneswinkler2000@web.de>
 Date: Wed, 11 Aug 2021 02:21:25 +0200
-Subject: [PATCH] fix armv7 build - make arm64 tune work
+Subject: [PATCH 1/2] fix armv7 build - make arm64 tune work
 
 ---
  build/config/arm.gni           | 27 +++-------
@@ -57,7 +57,7 @@ index 7a293e6..1c6ff69 100644
        arm_float_abi = "softfp"
      }
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index ba20010..06589d1 100644
+index 4c9a1ee..d136413 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
 @@ -3,7 +3,7 @@
@@ -194,4 +194,3 @@ index 7987e51..2c225a0 100644
          "Missing sysroot ($sysroot). To fix, run: build/linux/sysroot_scripts/install-sysroot.py --arch=$current_cpu")
 -- 
 2.25.1
-

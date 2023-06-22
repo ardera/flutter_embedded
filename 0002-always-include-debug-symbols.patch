@@ -1,0 +1,41 @@
+From c8afa410df725d2f0e2493fc0c24724a0d060671 Mon Sep 17 00:00:00 2001
+From: Hannes Winkler <hanneswinkler2000@web.de>
+Date: Thu, 22 Jun 2023 16:30:00 +0000
+Subject: [PATCH 2/2] always include debug symbols - always build with `-ggdb
+ -fdebug-default-version=4` by default. - symbols are stripped later anyway
+ and they're still useful for debugging.
+
+---
+ build/config/compiler/BUILD.gn | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index d136413..59b0243 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -996,7 +996,7 @@ config("symbols") {
+     }
+     ldflags = [ "/DEBUG" ]
+   } else {
+-    cflags = [ "-g2" ]
++    cflags = [ "-ggdb", "-fdebug-default-version=4" ]
+   }
+ }
+ 
+@@ -1005,12 +1005,12 @@ config("minimal_symbols") {
+     # Linker symbols for backtraces only.
+     ldflags = [ "/DEBUG" ]
+   } else {
+-    cflags = [ "-g1" ]
++    cflags = [ "-ggdb", "-fdebug-default-version=4" ]
+   }
+ }
+ 
+ config("no_symbols") {
+   if (!is_win) {
+-    cflags = [ "-g0" ]
++    cflags = [ "-ggdb", "-fdebug-default-version=4" ]
+   }
+ }
+-- 
+2.25.1
