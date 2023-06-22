@@ -799,35 +799,16 @@ jobs:
           mv arm/flutter_embedder.h flutter_embedder.h
           rm arm64/flutter_embedder.h
 
-      - uses: actions/cache@v3
-        with:
-          path: flutter
-          key: flutter-sdk-repo
-      
-      - name: Checkout flutter SDK
-        uses: actions/checkout@v3
-        with:
-          repository: flutter/flutter
-          ref: stable
-          path: flutter
-          fetch-depth: 0  # fetch complete history
-      
-      - name: Find out flutter SDK semver for this engine version
-        id: flutter-version
-        working-directory: flutter
-        run: |
-          echo "semver=$(git tag --points-at HEAD | tr -d [:space:])" >> $GITHUB_OUTPUT
-      
       - name: Log flutter version
         run: |
-          echo flutter version: ${{ steps.flutter-version.outputs.semver }}
+          echo flutter semver: ${{ github.ref_name }}
       
       - name: Commit new stable engine version
         uses: EndBug/add-and-commit@v9
         with:
           default_author: github_actions
           cwd: ./engine-binaries
-          message: 'update engine binaries for flutter ${{ steps.flutter-version.outputs.semver }}'
+          message: 'update engine binaries for flutter ${{ github.ref_name }}'
           tag: engine_${{ steps.engine-version-stable.outputs.hash }} --force
           tag_push: '--force'
   
