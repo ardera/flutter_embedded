@@ -56,15 +56,19 @@ jobs:
           key: engine-${{ steps.engine-version-stable.outputs.hash }}
       
       - name: Cache depot tools
+        id: cache-depot-tools
         uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}/depot_tools
           key: ${{ runner.os }}-depot-tools
-      
-      - name: Setup depot tools
-        working-directory: ${{ github.workspace }}
+
+      - name: Clone depot tools
+        if: steps.cache-depot-tools.outputs.cache-hit != 'true'
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git ${{ github.workspace }}/depot_tools
+  
+      - name: Setup depot tools
+        run: |
           echo GCLIENT_PY3=1 >> $GITHUB_ENV
           echo $GITHUB_WORKSPACE/depot_tools >> $GITHUB_PATH
 
@@ -290,15 +294,19 @@ jobs:
           echo arm-tune: ${{ matrix.arm-tune }}
       
       - name: Cache depot tools
+        id: cache-depot-tools
         uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}/depot_tools
           key: ${{ runner.os }}-depot-tools
       
-      - name: Setup depot tools
-        working-directory: ${{ github.workspace }}
+      - name: Clone depot tools
+        if: steps.cache-depot-tools.outputs.cache-hit != 'true'
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git ${{ github.workspace }}/depot_tools
+
+      - name: Setup depot tools
+        run: |
           echo GCLIENT_PY3=1 >> $GITHUB_ENV
           echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
           echo $GITHUB_WORKSPACE/depot_tools >> $GITHUB_PATH
