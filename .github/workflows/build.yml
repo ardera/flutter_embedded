@@ -478,33 +478,46 @@ jobs:
           path: release
           
       - name: Package artifacts
+        env:
+          XZ_DEFAULTS: "-T 0"
         run: |
           mkdir -p pkg
-          cd pkg
+          
+          pushd pkg
           mv ../engine.version.stable ./engine.version
           mv ../debug_unopt/libflutter_engine.so ./libflutter_engine.so.debug_unopt
-          mv ../debug_unopt/libflutter_engine.debug_unopt.dbgsyms ./libflutter_engine.debug_unopt.dbgsyms
           mv ../debug/libflutter_engine.so ./libflutter_engine.so.debug
-          mv ../debug/libflutter_engine.debug.dbgsyms ./libflutter_engine.debug.dbgsyms
           mv ../profile/libflutter_engine.so ./libflutter_engine.so.profile
-          mv ../profile/libflutter_engine.profile.dbgsyms ./libflutter_engine.profile.dbgsyms
           mv ../release/libflutter_engine.so ./libflutter_engine.so.release
-          mv ../release/libflutter_engine.release.dbgsyms ./libflutter_engine.release.dbgsyms
           mv ../debug/flutter_embedder.h ./flutter_embedder.h
           mv ../debug/icudtl.dat ./icudtl.dat
           mv ../debug/engine.version ./engine.version
           mv ../debug/dart-sdk.version ./dart-sdk.version
           mv ../profile/clang_x64/gen_snapshot ./gen_snapshot_linux_x64_profile
           mv ../release/clang_x64/gen_snapshot ./gen_snapshot_linux_x64_release
-          XZ_DEFAULTS="-T 0" tar -cJvf ../${{ matrix.artifact-name }}.tar.xz *
-      
-      # The github actions artifact uploader/downloader don't keep the file permissions, so we need to mak
-      # the binaries executable again.
-      # We tar the files afterwards though, which keeps the permissions.
-      - name: Make binaries executable
-        working-directory: pkg
-        run: |
+          
+          # The github actions artifact uploader/downloader don't keep the file permissions, so we need to mak
+          # the binaries executable again.
+          # We tar the files afterwards though, which keeps the permissions.
           chmod +x ./libflutter_engine.so* ./gen_snapshot*
+
+          tar -cJvf ../${{ matrix.artifact-name }}.tar.xz *
+          popd
+      
+      - name: Package debug symbols
+        env:
+          XZ_DEFAULTS: "-T 0"
+        run: |
+          mkdir -p pkg-dbgsyms
+
+          pushd pkg-dbgsyms
+          mv ../debug_unopt/libflutter_engine.debug_unopt.dbgsyms ./libflutter_engine.debug_unopt.dbgsyms
+          mv ../debug/libflutter_engine.debug.dbgsyms ./libflutter_engine.debug.dbgsyms
+          mv ../profile/libflutter_engine.profile.dbgsyms ./libflutter_engine.profile.dbgsyms
+          mv ../release/libflutter_engine.release.dbgsyms ./libflutter_engine.release.dbgsyms
+
+          tar -cJvf ../${{ matrix.artifact-name }}-dbgsyms.tar.xz *
+          popd
       
       # Show the complete file tree, and print all metadata (permissions, owner, group, filesize, last modification date)
       - name: Show file tree
@@ -519,13 +532,9 @@ jobs:
           path: |
             pkg/engine.version
             pkg/libflutter_engine.so.debug_unopt
-            pkg/libflutter_engine.debug_unopt.dgbsyms
             pkg/libflutter_engine.so.debug
-            pkg/libflutter_engine.debug.dgbsyms
             pkg/libflutter_engine.so.profile
-            pkg/libflutter_engine.profile.dgbsyms
             pkg/libflutter_engine.so.release
-            pkg/libflutter_engine.release.dgbsyms
             pkg/flutter_embedder.h
             pkg/icudtl.dat
             pkg/engine.version
@@ -539,6 +548,13 @@ jobs:
           name: ${{ matrix.artifact-name }}-tar-xz
           path: |
             ${{ matrix.artifact-name }}.tar.xz
+      
+      - name: Upload debug symbols (.tar.xz)
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact-name }}-dbgsyms-tar-xz
+          path: |
+            ${{ matrix.artifact-name }}-dbgsyms.tar.xz
             
   build-app:
     name: 'Build test app'
@@ -804,9 +820,7 @@ jobs:
           mv arm/flutter_embedder.h flutter_embedder.h
           rm arm64/flutter_embedder.h
           rm arm/*.debug_unopt
-          rm arm/*.dbgsyms
           rm arm64/*.debug_unopt
-          rm arm64/*.dbgsyms
      
       - name: Log flutter version
         run: |
@@ -839,30 +853,70 @@ jobs:
           echo *** engine version: ***
           echo ${{ steps.engine-version-stable.outputs.hash }}
       
+      - name: Create release-files directory
+        run: |
+          mkdir -p release-files
+
       - uses: actions/download-artifact@v3
         with:
           name: pi3-tar-xz
+          path: release-files
+      
+      - uses: actions/download-artifact@v3
+        with:
+          name: pi3-dbgsyms-tar-xz
+          path: release-files
       
       - uses: actions/download-artifact@v3
         with:
           name: pi3-64-tar-xz
+          path: release-files
+      
+      - uses: actions/download-artifact@v3
+        with:
+          name: pi3-64-dbgsyms-tar-xz
+          path: release-files
       
       - uses: actions/download-artifact@v3
         with:
           name: pi4-tar-xz
+          path: release-files
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: pi4-dbgsyms-tar-xz
+          path: release-files
       
       - uses: actions/download-artifact@v3
         with:
           name: pi4-64-tar-xz
+          path: release-files
       
       - uses: actions/download-artifact@v3
         with:
+          name: pi4-64-dbgsyms-tar-xz
+          path: release-files
+
+      - uses: actions/download-artifact@v3
+        with:
           name: armv7-generic-tar-xz
+          path: release-files
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: armv7-generic-dbgsyms-tar-xz
+          path: release-files
       
       - uses: actions/download-artifact@v3
         with:
           name: aarch64-generic-tar-xz
-      
+          path: release-files
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: aarch64-generic-dbgsyms-tar-xz
+          path: release-files
+
       # Show the complete file tree, and print all metadata (permissions, owner, group, filesize, last modification date)
       - name: Show file tree
         run: |
@@ -879,9 +933,4 @@ jobs:
             | engine version | ${{ github.ref_name }} | [flutter/engine@`${{ github.ref_name}}`](https://github.com/flutter/engine/tree/${{ github.ref_name }}) |
           fail_on_unmatched_files: true
           files: |
-            pi3.tar.xz
-            pi3-64.tar.xz
-            pi4.tar.xz
-            pi4-64.tar.xz
-            armv7-generic.tar.xz
-            aarch64-generic.tar.xz
+            release-files/*
