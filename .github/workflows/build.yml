@@ -54,34 +54,21 @@ jobs:
         with:
           path: engine
           key: engine-${{ steps.engine-version-stable.outputs.hash }}
-
-      - name: Setup environment variables
-        if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' }}
-        shell: bash
-        run: |
-          # echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
-          echo GCLIENT_PY3=1 >> $GITHUB_ENV
-          echo $PATH
-          
-      - name: Clone depot tools
-        if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' }}
-        shell: bash
-        run: |
-          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $GITHUB_WORKSPACE/depot_tools
-          echo $GITHUB_WORKSPACE/depot_tools >> $GITHUB_PATH
       
-      - name: Setup environment variables
-        if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' }}
-        shell: bash
+      - name: Cache depot tools
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/depot_tools
+          key: ${{ runner.os }}-depot-tools
+      
+      - name: Setup depot tools
+        working-directory: ${{ github.workspace }}
         run: |
-          # echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git ${{ github.workspace }}/depot_tools
           echo GCLIENT_PY3=1 >> $GITHUB_ENV
-          echo $PATH
-          echo is-host: ${{ inputs.is-host }}
-          
-      - name: Setup gclient
-        if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' }}
-        shell: bash
+          echo $GITHUB_WORKSPACE/depot_tools >> $GITHUB_PATH
+
+      - name: Update depot tools
         run: |
           gclient --version
           echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
@@ -313,15 +300,12 @@ jobs:
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git ${{ github.workspace }}/depot_tools
           echo GCLIENT_PY3=1 >> $GITHUB_ENV
+          echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
           echo $GITHUB_WORKSPACE/depot_tools >> $GITHUB_PATH
-
-      - name: Setup gclient
+      
+      - name: Run gclient --version
         run: |
           gclient --version
-      
-      - name: Disable depot tools update
-        run: |
-          echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
           
       - name: Download cached engine sources
         uses: actions/cache@v3
