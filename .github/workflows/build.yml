@@ -481,21 +481,21 @@ jobs:
         run: |
           mkdir -p pkg
           cd pkg
-          cp ../engine.version.stable ./engine.version
-          cp ../debug_unopt/libflutter_engine.so ./libflutter_engine.so.debug_unopt
-          cp ../debug_unopt/libflutter_engine.debug_unopt.dbgsyms ./libflutter_engine.debug_unopt.dbgsyms
-          cp ../debug/libflutter_engine.so ./libflutter_engine.so.debug
-          cp ../debug/libflutter_engine.debug.dbgsyms ./libflutter_engine.debug.dbgsyms
-          cp ../profile/libflutter_engine.so ./libflutter_engine.so.profile
-          cp ../profile/libflutter_engine.profile.dbgsyms ./libflutter_engine.profile.dbgsyms
-          cp ../release/libflutter_engine.so ./libflutter_engine.so.release
-          cp ../release/libflutter_engine.release.dbgsyms ./libflutter_engine.release.dbgsyms
-          cp ../debug/flutter_embedder.h ./flutter_embedder.h
-          cp ../debug/icudtl.dat ./icudtl.dat
-          cp ../debug/engine.version ./engine.version
-          cp ../debug/dart-sdk.version ./dart-sdk.version
-          cp ../profile/clang_x64/gen_snapshot ./gen_snapshot_linux_x64_profile
-          cp ../release/clang_x64/gen_snapshot ./gen_snapshot_linux_x64_release
+          mv ../engine.version.stable ./engine.version
+          mv ../debug_unopt/libflutter_engine.so ./libflutter_engine.so.debug_unopt
+          mv ../debug_unopt/libflutter_engine.debug_unopt.dbgsyms ./libflutter_engine.debug_unopt.dbgsyms
+          mv ../debug/libflutter_engine.so ./libflutter_engine.so.debug
+          mv ../debug/libflutter_engine.debug.dbgsyms ./libflutter_engine.debug.dbgsyms
+          mv ../profile/libflutter_engine.so ./libflutter_engine.so.profile
+          mv ../profile/libflutter_engine.profile.dbgsyms ./libflutter_engine.profile.dbgsyms
+          mv ../release/libflutter_engine.so ./libflutter_engine.so.release
+          mv ../release/libflutter_engine.release.dbgsyms ./libflutter_engine.release.dbgsyms
+          mv ../debug/flutter_embedder.h ./flutter_embedder.h
+          mv ../debug/icudtl.dat ./icudtl.dat
+          mv ../debug/engine.version ./engine.version
+          mv ../debug/dart-sdk.version ./dart-sdk.version
+          mv ../profile/clang_x64/gen_snapshot ./gen_snapshot_linux_x64_profile
+          mv ../release/clang_x64/gen_snapshot ./gen_snapshot_linux_x64_release
           XZ_DEFAULTS="-T 0" tar -cJvf ../${{ matrix.artifact-name }}.tar.xz *
       
       # The github actions artifact uploader/downloader don't keep the file permissions, so we need to mak
