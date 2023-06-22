@@ -339,11 +339,15 @@ jobs:
       - name: Show git status
         working-directory: engine/src
         run: git status
-                  
+      
+      - name: Override PKGCONFIG_PATH for linux arm
+        if: matrix.cpu == 'arm'
+        run:
+          echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/engine/src/build/linux/debian_sid_arm-sysroot/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
+
       - name: Configure engine
         working-directory: engine
         run: |
-          PKG_CONFIG_PATH=$GITHUB_WORKSPACE/engine/src/build/linux/debian_sid_arm-sysroot/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/share/pkgconfig \
           ./src/flutter/tools/gn \
             --runtime-mode ${{ matrix.runtime-mode }} \
             --target-os linux \
@@ -367,7 +371,7 @@ jobs:
           cat args.gn
           echo '*** rerunning gn gen ***'
           gn gen --export-compile-commands .
-  
+      
       - name: Build engine
         shell: bash
         working-directory: engine/src/out/build
