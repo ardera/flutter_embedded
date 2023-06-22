@@ -798,7 +798,7 @@ jobs:
         run: |
           mv arm/flutter_embedder.h flutter_embedder.h
           rm arm64/flutter_embedder.h
-
+     
       - name: Log flutter version
         run: |
           echo flutter semver: ${{ github.ref_name }}
@@ -867,7 +867,7 @@ jobs:
             | - | - | - |
             | flutter channel | stable | |
             | flutter version | ${{ github.ref_name }} | [flutter/flutter@`${{ github.ref_name }}`](https://github.com/flutter/flutter/tree/${{ github.ref_name }}) |
-            | engine commit | `${{ steps.engine-version-stable.outputs.hash }}` | https://github.com/flutter/engine/commit/${{ steps.engine-version-stable.outputs.hash }} |
+            | engine version | ${{ github.ref_name }} | [flutter/engine@`${{ github.ref_name}}`](https://github.com/flutter/engine/tree/${{ github.ref_name }}) |
           fail_on_unmatched_files: true
           files: |
             pi3.tar.xz
