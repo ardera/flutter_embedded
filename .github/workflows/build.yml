@@ -206,25 +206,29 @@ jobs:
           # debug_unopt is a debug build with -O0 and -ggdb -fdebug-default-version=4
           - flavor: debug_unopt
             runtime-mode: debug
-            unoptimized-nostripped: true
+            unoptimized: true
+            nostripped: true
             split-debug-symbols: true
             has-gen-snapshot: false
           
           - flavor: debug
             runtime-mode: debug
-            unoptimized-nostripped: false
+            unoptimized: false
+            nostripped: false
             split-debug-symbols: false
             has-gen-snapshot: false
           
           - flavor: profile
             runtime-mode: profile
-            unoptimized-nostripped: false
+            unoptimized: false
+            nostripped: false
             split-debug-symbols: false
             has-gen-snapshot: true
           
           - flavor: release
             runtime-mode: release
-            unoptimized-nostripped: false
+            unoptimized: false
+            nostripped: false
             split-debug-symbols: false
             has-gen-snapshot: true
             
@@ -290,39 +294,94 @@ jobs:
           echo artifact name: ${{ matrix.artifact-name }}
           echo flavor: ${{ matrix.flavor }}
           echo flutter runtime mode: ${{ matrix.runtime-mode }}
+          echo unoptimized: ${{ matrix.unoptimized }}
+          echo no-stripped: ${{ matrix.nostripped }}
+          echo split debug symbols: ${{ matrix.split-debug-symbols }}
           echo has gen_snapshot: ${{ matrix.has-gen-snapshot }}
           echo cpu: ${{ matrix.cpu }}
           echo arm-cpu: ${{ matrix.arm-cpu }}
           echo arm-tune: ${{ matrix.arm-tune }}
+      
+      - name: Cache depot tools
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/depot_tools
+          key: ${{ runner.os }}-depot-tools
+      
+      - name: Setup depot tools
+        working-directory: ${{ github.workspace }}
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git ${{ github.workspace }}/depot_tools
+          echo GCLIENT_PY3=1 >> $GITHUB_ENV
+          echo $GITHUB_WORKSPACE/depot_tools >> $GITHUB_PATH
+
+      - name: Setup gclient
+        run: |
+          gclient --version
+      
+      - name: Disable depot tools update
+        run: |
+          echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
           
+      - name: Download cached engine sources
+        uses: actions/cache@v3
+        id: cache
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
+        with:
+          path: engine
+          key: engine-${{ inputs.ref }}
+  
+      - name: Check if downloading engine sources succeeded
+        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+        uses: actions/github-script@v3
+        with:
+          script: |
+            core.setFailed('Could not find cached engine source!')
+  
+      - name: Apply patch "Fix armv7 build"
+        working-directory: engine/src
+        run: |
+          git apply $GITHUB_WORKSPACE/0001-fix-armv7-build.patch
+      
+      - name: Show git status
+        working-directory: engine/src
+        run: git status
+                  
+      - name: Configure engine
+        working-directory: engine
+        run: |
+          PKG_CONFIG_PATH=$GITHUB_WORKSPACE/engine/src/build/linux/debian_sid_arm-sysroot/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/share/pkgconfig \
+          ./src/flutter/tools/gn \
+            --runtime-mode ${{ matrix.runtime-mode }} \
+            --target-os linux \
+            --linux-cpu ${{ matrix.cpu }} \
+            ${{ matrix.cpu == 'arm' && '--arm-float-abi hard' || ''}} \
+            --target-dir build \
+            --embedder-for-target \
+            --disable-desktop-embeddings \
+            --no-build-glfw-shell \
+            --no-build-embedder-examples \
+            --no-goma \
+            ${{ matrix.unoptimized && '--unoptimized' || ''}} \
+            ${{ matrix.nostripped && '--no-stripped' || ''}}
+      
+      - name: Append raw gn args
+        working-directory: engine/src/out/build/
+        run: |
+          echo 'arm_cpu = "${{ matrix.arm-cpu }}"' >> args.gn
+          echo 'arm_tune = "${{ matrix.arm-tune }}"' >> args.gn
+          echo '*** args.gn file: ***'
+          cat args.gn
+          echo '*** rerunning gn gen ***'
+          gn gen --export-compile-commands .
+  
       - name: Build engine
-        uses: ./.github/actions/build-engine
-        if: ${{ matrix.unoptimized-nostripped == false }}
-        with:
-          ref: "${{ steps.engine-version-stable.outputs.hash  }}"
-          is-host: false
-          runtime-mode: ${{ matrix.runtime-mode }}
-          os: linux
-          cpu: ${{ matrix.cpu }}
-          additional-gn-args: '--embedder-for-target --disable-desktop-embeddings --no-build-glfw-shell --no-build-embedder-examples --no-goma'
-          additional-raw-gn-args: |
-            arm_cpu = "${{ matrix.arm-cpu }}"
-            arm_tune = "${{ matrix.arm-tune }}"
-       
-      - name: Build engine (unoptimized, debug symbols)
-        uses: ./.github/actions/build-engine
-        if: ${{ matrix.unoptimized-nostripped == true }}
-        with:
-          ref: "${{ steps.engine-version-stable.outputs.hash  }}"
-          is-host: false
-          runtime-mode: ${{ matrix.runtime-mode }}
-          os: linux
-          cpu: ${{ matrix.cpu }}
-          additional-gn-args: '--embedder-for-target --disable-desktop-embeddings --no-build-glfw-shell --no-build-embedder-examples --no-goma --unoptimized --no-stripped'
-          additional-raw-gn-args: |
-            arm_cpu = "${{ matrix.arm-cpu }}"
-            arm_tune = "${{ matrix.arm-tune }}"
-           
+        shell: bash
+        working-directory: engine/src/out/build
+        run: |
+          ninja libflutter_engine.so clang_x64/gen_snapshot flutter_embedder.h icudtl.dat
+
       - name: Add engine.version and dart-sdk.version file
         run: |
           cp engine.version.stable ${{ github.workspace }}/engine/src/out/build/engine.version
@@ -334,35 +393,21 @@ jobs:
         if: ${{ matrix.split-debug-symbols == true }}
         working-directory: ${{ github.workspace }}/engine/src/out/build/
         run: |
-          ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --only-keep-debug libflutter_engine.so libflutter_engine.dbgsyms
-          ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --strip-all --add-gnu-debuglink=libflutter_engine.dbgsyms libflutter_engine.so
+          ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --only-keep-debug libflutter_engine.so libflutter_engine.${{ matrix.flavor }}.dbgsyms
+          ${{ github.workspace }}/engine/src/buildtools/linux-x64/clang/bin/llvm-objcopy --strip-all --add-gnu-debuglink=libflutter_engine.${{ matrix.flavor }}.dbgsyms libflutter_engine.so
 
-      - name: Upload artifacts (with gen_snapshot)
-        if: ${{ matrix.has-gen-snapshot == true }}
+      - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.artifact-name }}-${{ matrix.flavor }}
           path: |
             ${{ github.workspace }}/engine/src/out/build/compile_commands.json
             ${{ github.workspace }}/engine/src/out/build/libflutter_engine.so
-            ${{ github.workspace }}/engine/src/out/build/libflutter_engine.dbgsyms
+            ${{ github.workspace }}/engine/src/out/build/libflutter_engine.${{ matrix.flavor }}.dbgsyms
             ${{ github.workspace }}/engine/src/out/build/icudtl.dat
             ${{ github.workspace }}/engine/src/out/build/flutter_embedder.h
+            ${{ matrix.has-gen-snapshot && format('{0}/engine/src/out/build/clang_x64/gen_snapshot', github.workspace) || '' }}
             ${{ github.workspace }}/engine/src/out/build/clang_x64/gen_snapshot
-            ${{ github.workspace }}/engine/src/out/build/engine.version
-            ${{ github.workspace }}/engine/src/out/build/dart-sdk.version
-      
-      - name: Upload artifacts (without gen_snapshot)
-        if: ${{ matrix.has-gen-snapshot == false }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.artifact-name }}-${{ matrix.flavor }}
-          path: |
-            ${{ github.workspace }}/engine/src/out/build/compile_commands.json
-            ${{ github.workspace }}/engine/src/out/build/libflutter_engine.so
-            ${{ github.workspace }}/engine/src/out/build/libflutter_engine.dbgsyms
-            ${{ github.workspace }}/engine/src/out/build/icudtl.dat
-            ${{ github.workspace }}/engine/src/out/build/flutter_embedder.h
             ${{ github.workspace }}/engine/src/out/build/engine.version
             ${{ github.workspace }}/engine/src/out/build/dart-sdk.version
   
@@ -438,9 +483,9 @@ jobs:
           mkdir -p pkg
           cd pkg
           cp ../engine.version.stable ./engine.version
-          cp ../debug/libflutter_engine.so ./libflutter_engine.so.debug
           cp ../debug_unopt/libflutter_engine.so ./libflutter_engine.so.debug_unopt
-          cp ../debug_unopt/libflutter_engine.dbgsyms ./libflutter_engine.dbgsyms
+          cp ../debug_unopt/libflutter_engine.debug_unopt.dbgsyms ./libflutter_engine.debug_unopt.dbgsyms
+          cp ../debug/libflutter_engine.so ./libflutter_engine.so.debug
           cp ../profile/libflutter_engine.so ./libflutter_engine.so.profile
           cp ../release/libflutter_engine.so ./libflutter_engine.so.release
           cp ../debug/flutter_embedder.h ./flutter_embedder.h
