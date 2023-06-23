@@ -34,6 +34,13 @@ jobs:
         run: |
           echo stable engine version: "${{ steps.engine-commit.outputs.hash }}"
       
+      - name: Cache flutter engine
+        id: cache-engine
+        uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-flutter-engine
+          path: flutter_engine
+
       # We need to checkout the complete flutter SDK to find the semver.
       - name: Checkout flutter engine
         uses: actions/checkout@v3
@@ -51,13 +58,18 @@ jobs:
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
          
-          echo "semvers<<$EOF" >> "$GITHUB_OUTPUT"
+          echo -n "semvers=" >> "$GITHUB_OUTPUT"
           ((echo "[" && git tag -l --points-at HEAD --format='"%(refname:strip=2)",' && echo "null]") | tr -d [:space:]) | jq -c .[:-1] >> "GITHUB_OUTPUT"
-          echo "$EOF" >> "$GITHUB_OUTPUT"
-      
+          echo '' >> "$GITHUB_OUTPUT"
+
       - name: Log flutter SDK semvers
         run: |
-          echo flutter sdk semvers for engine "${{ steps.engine-commit.outputs.hash }}":
+          echo unparsed flutter sdk semvers for engine "${{ steps.engine-commit.outputs.hash }}":
+          echo ${{ steps.flutter-sdk-version.outputs.semvers }}
+      
+      - name: Parse flutter SDK semvers
+        run: |
+          echo parsed semvers:
           echo ${{ join(fromJson(steps.flutter-sdk-version.outputs.semvers)) }}
 
   populate-engine-src-cache:
