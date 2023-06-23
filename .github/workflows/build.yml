@@ -3,7 +3,7 @@ name: build engine for Raspberry Pi 3 & 4 and generic ARMv7 & AArch64.
 on:
   push:
     tags:
-      - '**'
+      - 'engine/*'
   pull_request:
     branches: [ ci ]
   repository_dispatch:
@@ -11,9 +11,54 @@ on:
   workflow_call:
   
 jobs:
+  resolve-version:
+    name: 'Resolve relevant flutter versions'
+    runs-on: ubuntu-latest
+    outputs:
+      engine-hash: ${{ steps.engine-commit.outputs.hash }}
+      sdk-semvers: ${{ steps.flutter-sdk-version.outputs.semvers }}
+    steps:
+      - uses: actions/checkout@v3
+        
+      - run: |
+          echo github.ref: ${{ github.ref }}
+
+      - name: Read stable engine version
+        id: engine-commit
+
+        # Read the engine.version.stable file and trim away anything that's not a hex digit
+        # (So we don't include whitespace in the output variable, if that's possible)
+        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
+      
+      - name: Log stable engine version
+        run: |
+          echo stable engine version: "${{ steps.engine-commit.outputs.hash }}"
+      
+      # We need to checkout the complete flutter SDK to find the semver.
+      - name: Checkout flutter engine
+        uses: actions/checkout@v3
+        with:
+          repository: flutter/engine
+          ref: ${{ steps.engine-commit.outputs.hash }}
+          path: flutter_engine
+          fetch-depth: 0  # fetch complete history
+      
+      # reference: https://github.com/flutter/flutter/blob/a880c4ed3590477380c975f867406ba336834848/packages/flutter_tools/lib/src/version.dart#L703
+      # if the flutter people ever decide to point more than one tags at the stable SDK commit we're in trouble here
+      - name: Find out flutter SDK semvers for this engine version
+        id: flutter-sdk-version
+        working-directory: flutter_engine
+        run: |
+          echo ::set-output name=semver::$(git tag --points-at HEAD)
+      
+      - name: Log flutter SDK semvers
+        run: |
+          echo ${{ steps.flutter-sdk-version.outputs.semvers }}
+
   populate-engine-src-cache:
     name: 'Prepopulate engine source cache'
     runs-on: ubuntu-latest
+    needs: resolve-version
 
     steps:
       - uses: actions/checkout@v3
@@ -30,7 +75,7 @@ jobs:
       
       - name: Log stable engine version
         run: |
-          echo stable engine version: "${{ steps.engine-version-stable.outputs.hash }}"
+          echo stable engine version: "${{ needs.resolve-version.outputs.engine-hash }}"
       
       - name: Create engine cache stamp dir
         shell: bash
@@ -41,7 +86,7 @@ jobs:
         id: stamp-cache
         with:
           path: engine-cache-stamp
-          key: engine-cache-stamp-${{ steps.engine-version-stable.outputs.hash }}
+          key: engine-cache-stamp-${{ needs.resolve-version.outputs.engine-hash }}
 
       - name: Log cache hit
         shell: bash
@@ -53,7 +98,7 @@ jobs:
         if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' }}
         with:
           path: engine
-          key: engine-${{ steps.engine-version-stable.outputs.hash }}
+          key: engine-${{ needs.resolve-version.outputs.engine-hash }}
       
       - name: Cache depot tools
         id: cache-depot-tools
@@ -83,7 +128,7 @@ jobs:
         shell: bash
         run: |
           echo "::group::Downloading DEPS file"
-          wget https://raw.githubusercontent.com/flutter/engine/${{ steps.engine-version-stable.outputs.hash }}/DEPS
+          wget https://raw.githubusercontent.com/flutter/engine/${{ needs.resolve-version.outputs.engine-hash }}/DEPS
           echo "::endgroup::"
           
           echo "::group::DEPS file contents"
@@ -120,7 +165,7 @@ jobs:
         shell: bash
         working-directory: engine
         run: |
-          gclient sync --revision src/flutter@${{ steps.engine-version-stable.outputs.hash }} -R -D
+          gclient sync --revision src/flutter@${{ needs.resolve-version.outputs.engine-hash }} -R -D
       
       - name: Install linux arm sysroot
         if: ${{ steps.stamp-cache.outputs.cache-hit != 'true' }}
@@ -148,11 +193,11 @@ jobs:
             git gc --prune=all
             popd
           done
-          
+  
   build-engine:
     name: 'build engine'
     runs-on: ubuntu-latest
-    needs: populate-engine-src-cache
+    needs: [resolve-version, populate-engine-src-cache]
     strategy:
       matrix:
         artifact-name:
@@ -272,15 +317,11 @@ jobs:
           
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Read stable engine version
-        id: engine-version-stable
-        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
 
       - name: Log engine version & Build config
         run: |
           echo *** engine version: ***
-          echo ${{ steps.engine-version-stable.outputs.hash }}
+          echo ${{ needs.resolve-version.outputs.engine-hash }}
           echo '*** build config: ***'
           echo artifact name: ${{ matrix.artifact-name }}
           echo flavor: ${{ matrix.flavor }}
@@ -322,7 +363,7 @@ jobs:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
         with:
           path: engine
-          key: engine-${{ steps.engine-version-stable.outputs.hash }}
+          key: engine-${{ needs.resolve-version.outputs.engine-hash }}
   
       - name: Check if downloading engine sources succeeded
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
@@ -414,7 +455,7 @@ jobs:
   package:
     name: 'Package artifacts'
     runs-on: ubuntu-latest
-    needs: [build-engine]
+    needs: [build-engine, resolve-version]
     strategy:
       matrix:
         artifact-name:
@@ -446,14 +487,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Read stable engine version
-        id: engine-version-stable
-        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
-      
       - name: Log engine version & Build config
         run: |
           echo *** engine version: ***
-          echo ${{ steps.engine-version-stable.outputs.hash }}
+          echo ${{ needs.resolve-version.outputs.engine-hash }}
           echo '*** config: ***'
           echo artifact name: ${{ matrix.artifact-name }}
           echo generic-arch-artifact-name: ${{ matrix.generic-arch-artifact-name }}
@@ -556,7 +593,7 @@ jobs:
           name: ${{ matrix.artifact-name }}-dbgsyms-tar-xz
           path: |
             ${{ matrix.artifact-name }}-dbgsyms.tar.xz
-            
+  
   build-app:
     name: 'Build test app'
     runs-on: ubuntu-latest
@@ -707,7 +744,7 @@ jobs:
         with:
           name: ${{ matrix.artifact-name }}-${{ matrix.flavor }}-app-assets
           path: app-assets
-          
+  
   test-app:
     name: 'Test app on a Raspberry Pi'
     runs-on: ${{ matrix.runner }}
@@ -781,23 +818,41 @@ jobs:
         run: |
           flutter-pi/build/flutter-pi --${{ matrix.runtime-mode }} app
   
+  resolve-semver:
+    name: 'Resolve flutter SDK semver for engine version'
+    runs-on: ubuntu-latest
+    steps:
+      # We need to checkout the complete flutter SDK to find the semver.
+      - name: Checkout flutter engine
+        uses: actions/checkout@v3
+        with:
+          repository: flutter/engine
+          ref: 
+          path: flutter_engine
+          fetch-depth: 0  # fetch complete history
+      
+      # reference: https://github.com/flutter/flutter/blob/a880c4ed3590477380c975f867406ba336834848/packages/flutter_tools/lib/src/version.dart#L703
+      # if the flutter people ever decide to point more than one tags at the stable SDK commit we're in trouble here
+      - name: find out flutter SDK semver for this engine version
+        id: flutter-version
+        working-directory: flutter_engine
+        run: |
+          echo ::set-output name=semver::$(git tag --points-at HEAD | tr -d [:space:])
+          echo flutter version: ${{ steps.flutter-version.outputs.semver }}
+
   push-old-repo:
     name: 'Push binaries to old engine binaries repo'
     runs-on: ubuntu-latest
-    needs: [package, test-app]
+    needs: [resolve-version, package, test-app]
     if: startsWith(github.ref, 'refs/tags')
     
     steps:
       - uses: actions/checkout@v3
       
-      - name: Read stable engine version
-        id: engine-version-stable
-        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
-      
       - name: Log engine version
         run: |
           echo *** engine version: ***
-          echo ${{ steps.engine-version-stable.outputs.hash }}
+          echo ${{ needs.resolve-version.outputs.engine-hash }}
       
       - uses: actions/checkout@v3
         with:
@@ -833,26 +888,22 @@ jobs:
           default_author: github_actions
           cwd: ./engine-binaries
           message: 'update engine binaries for flutter ${{ github.ref_name }}'
-          tag: engine_${{ steps.engine-version-stable.outputs.hash }} --force
+          tag: engine_${{ needs.resolve-version.outputs.engine-hash }} --force
           tag_push: '--force'
   
   release:
     name: 'Publish release'
     runs-on: ubuntu-latest
-    needs: [package, test-app]
+    needs: [resolve-version, package, test-app]
     if: startsWith(github.ref, 'refs/tags/')
     
     steps:
       - uses: actions/checkout@v3
       
-      - name: Read stable engine version
-        id: engine-version-stable
-        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
-
       - name: Log engine version
         run: |
           echo *** engine version: ***
-          echo ${{ steps.engine-version-stable.outputs.hash }}
+          echo ${{ needs.resolve-version.outputs.engine-hash }}
       
       - name: Create release-files directory
         run: |
