@@ -50,6 +50,12 @@ jobs:
           path: flutter_engine
           fetch-depth: 0  # fetch complete history
       
+      - name: Log git status
+        working-directory: flutter_engine
+        run: |
+          git status
+          git tag -l --points-at ${{ steps.engine-commit.outputs.hash }}
+      
       # reference: https://github.com/flutter/flutter/blob/a880c4ed3590477380c975f867406ba336834848/packages/flutter_tools/lib/src/version.dart#L703
       # if the flutter people ever decide to point more than one tags at the stable SDK commit we're in trouble here
       - name: Find out flutter SDK semvers for this engine version
@@ -58,19 +64,19 @@ jobs:
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
          
-          echo -n "semvers=" >> "$GITHUB_OUTPUT"
-          ((echo "[" && git tag -l --points-at HEAD --format='"%(refname:strip=2)",' && echo "null]") | tr -d [:space:]) | jq -c .[:-1] >> "GITHUB_OUTPUT"
-          echo '' >> "$GITHUB_OUTPUT"
+          echo "semvers<<$EOF" >> "$GITHUB_OUTPUT"
+          (( echo "[" && git tag -l --points-at ${{ steps.engine-commit.outputs.hash }} --format='"%(refname:strip=2)",' && echo "null]" ) | tr -d [:space:] ) | jq -cM .[:-1] >> "GITHUB_OUTPUT"
+          echo '$EOF' >> "$GITHUB_OUTPUT"
 
       - name: Log flutter SDK semvers
         run: |
           echo unparsed flutter sdk semvers for engine "${{ steps.engine-commit.outputs.hash }}":
-          echo ${{ steps.flutter-sdk-version.outputs.semvers }}
+          echo "${{ steps.flutter-sdk-version.outputs.semvers }}"
       
       - name: Parse flutter SDK semvers
         run: |
           echo parsed semvers:
-          echo ${{ join(fromJson(steps.flutter-sdk-version.outputs.semvers)) }}
+          echo ${{ fromJson(steps.flutter-sdk-version.outputs.semvers) }}
 
   populate-engine-src-cache:
     name: 'Prepopulate engine source cache'
