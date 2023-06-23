@@ -870,7 +870,7 @@ jobs:
         with:
           default_author: github_actions
           cwd: ./engine-binaries
-          message: 'update engine binaries for flutter ${{ join(fromJson(needs.resolve-version.outputs.sdk-semvers) }}'
+          message: 'update engine binaries for flutter ${{ join(fromJson(needs.resolve-version.outputs.sdk-semvers)) }}'
           tag: engine_${{ needs.resolve-version.outputs.engine-hash }} --force
           tag_push: '--force'
   
