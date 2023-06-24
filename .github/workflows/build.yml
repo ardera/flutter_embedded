@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       engine-hash: ${{ steps.engine-commit.outputs.hash }}
+      first-semver: ${{ steps.flutter-sdk-version.outputs.first-semver }}
       sdk-semvers: ${{ steps.flutter-sdk-version.outputs.semvers }}
     steps:
       - uses: actions/checkout@v3
@@ -67,6 +68,8 @@ jobs:
           echo "semvers<<$EOF" >> "$GITHUB_OUTPUT"
           (( echo "[" && git tag -l --points-at ${{ steps.engine-commit.outputs.hash }} --format='"%(refname:strip=2)",' && echo "null]" ) | tr -d [:space:] ) | jq -cM .[:-1] >> "$GITHUB_OUTPUT"
           echo "$EOF" >> "$GITHUB_OUTPUT"
+
+          echo "first-semver=$(git tag -l --points-at ${{ steps.engine-commit.outputs.hash }} | head -n1)" >> "$GITHUB_OUTPUT"
 
       - name: Log flutter SDK semvers
         run: |
@@ -889,7 +892,7 @@ jobs:
           default_author: github_actions
           cwd: ./engine-binaries
           message: 'update engine binaries for flutter ${{ join(fromJson(needs.resolve-version.outputs.sdk-semvers)) }}'
-          tag: engine_${{ needs.resolve-version.outputs.engine-hash }} --force
+          tag: engine_${{ needs.resolve-version.outputs.engine-hash }} engine/${{ needs.resolve-version.outputs.engine-hash }} ${{ join(fromJson(needs.resolve-version.outputs.sdk-semvers), '') }} --force
           tag_push: '--force'
   
   release:
@@ -978,13 +981,13 @@ jobs:
       
       - uses: softprops/action-gh-release@v1
         with:
-          name: fromJson(needs.resolve-version.outputs.sdk-semvers)
+          name: ${{ join(fromJson(needs.resolve-version.outputs.sdk-semvers)) }}
           body: |
             | name | info | reference |
             | - | - | - |
             | flutter channel | stable | |
-            | flutter version | ${{ fromJson(needs.resolve-version.outputs.sdk-semvers)[0] }} | [flutter/flutter@`${{ fromJson(needs.resolve-version.outputs.sdk-semvers)[0] }}`](https://github.com/flutter/flutter/tree/${{ fromJson(needs.resolve-version.outputs.sdk-semvers)[0] }}) |
-            | engine version | ${{ fromJson(needs.resolve-version.outputs.sdk-semvers)[0] }} | [flutter/engine@`${{ fromJson(needs.resolve-version.outputs.sdk-semvers)[0] }}`](https://github.com/flutter/engine/tree/${{ fromJson(needs.resolve-version.outputs.sdk-semvers)[0] }}) |
+            | flutter version | ${{ needs.resolve-version.outputs.first-semver }} | [flutter/flutter@`${{ needs.resolve-version.outputs.first-semver }}`](https://github.com/flutter/flutter/tree/${{ needs.resolve-version.outputs.first-semver }}) |
+            | engine version | ${{ needs.resolve-version.outputs.first-semver }} | [flutter/engine@`${{ needs.resolve-version.outputs.first-semver }}`](https://github.com/flutter/engine/tree/${{ needs.resolve-version.outputs.first-semver }}) |
           fail_on_unmatched_files: true
           files: |
             release-files/*
