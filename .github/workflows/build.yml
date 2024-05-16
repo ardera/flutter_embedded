@@ -209,182 +209,34 @@ jobs:
           path: engine
           key: engine-${{ needs.resolve-version.outputs.engine-hash }}-${{ runner.os }}
   
+  load-matrix:
+    runs-on: ubuntu-latest
+    container:
+      image: dart:3.4
+    outputs:
+      matrix: ${{ steps.load-matrix.outputs.matrix }}
+    steps:
+      # checkout
+      - uses: actions/checkout@v3
+      
+      # execute the workflow_tool to generate the matrix and store in matrix output variable
+      - name: Load matrix
+        id: load-matrix
+        run: |
+          dart run workflow_tool/bin/workflow_tool.dart >> $GITHUB_OUTPUT
+
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+         
+          echo "matrix<<$EOF" >> "$GITHUB_OUTPUT"
+          dart run workflow_tool/bin/workflow_tool.dart >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
+
   build:
     name: "build ${{ matrix.build-universal && 'universal artifacts' || '' }}${{ matrix.build-engine && format('engine for {0} {1}', matrix.artifact-name, matrix.flavor) || '' }}${{ matrix.build-engine && matrix.build-gen-snapshot && ', ' || ''}}${{ matrix.build-gen-snapshot && format('{0} gen_snapshot for {1} {2}', matrix.os-nice, matrix.artifact-name, matrix.flavor) || ''}}"
     runs-on: ${{ matrix.os }}
-    needs: [ resolve-version, populate-engine-src-cache ]
+    needs: [ resolve-version, populate-engine-src-cache, load-matrix ]
     strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-13
-        artifact-name:
-          - pi3
-          - pi3-64
-          - pi4
-          - pi4-64
-          - armv7-generic
-          - aarch64-generic
-          - x64-generic
-        flavor:
-          - debug_unopt
-          - debug
-          - profile
-          - release
-        exclude:
-          # for pi3, pi3-64, pi4, pi4-64 we only build the profile and release flavors.
-          # you the point of the pi3, pi4 specific artifacts is CPU-specific optimizations & tuning.
-          # (-mcpu, -mtune)
-          # You don't need CPU-specific optimizations for (unoptimized) debug builds.
-          # Instead, reuse the armv7-generic and aarch64-generic binaries there.
-          - artifact-name: pi3
-            flavor: debug_unopt
-          - artifact-name: pi3
-            flavor: debug
-          
-          - artifact-name: pi3-64
-            flavor: debug_unopt
-          - artifact-name: pi3-64
-            flavor: debug
-          
-          - artifact-name: pi4
-            flavor: debug_unopt
-          - artifact-name: pi4
-            flavor: debug
-          
-          - artifact-name: pi4-64
-            flavor: debug_unopt
-          - artifact-name: pi4-64
-            flavor: debug
-
-          # We exclude MacOS builds that don't use profile or release mode
-          # because we're only building the gen_snapshot there anyway.
-          - os: macos-13
-            flavor: debug_unopt
-          - os: macos-13
-            flavor: debug
-          
-          # MacOS gen_snapshot is only built for the generic targets.
-          - os: macos-13
-            artifact-name: pi3
-          - os: macos-13
-            artifact-name: pi3-64
-          - os: macos-13
-            artifact-name: pi4
-          - os: macos-13
-            artifact-name: pi4-64
-          
-        include:
-          # We don't build the linux engine on MacOS because it's already
-          # built by the ubuntu runners.
-          - os: macos-13
-            os-nice: 'MacOS'
-            build-engine: false
-            nostripped: true
-            split-debug-symbols: false
-
-          - os: ubuntu-latest
-            os-nice: 'Linux'
-            build-engine: true
-            nostripped: true
-            split-debug-symbols: true
-
-          # debug_unopt is a debug build with -O0 and -ggdb -fdebug-default-version=4
-          - flavor: debug_unopt
-            runtime-mode: debug
-            unoptimized: true
-            build-gen-snapshot: false
-          
-          - flavor: debug
-            runtime-mode: debug
-            unoptimized: false
-            build-gen-snapshot: false
-          
-          - flavor: profile
-            runtime-mode: profile
-            unoptimized: false
-            build-gen-snapshot: true
-          
-          - flavor: release
-            runtime-mode: release
-            unoptimized: false
-            build-gen-snapshot: true
-            
-          # Pi 3 is a Cortex A53.
-          # -mcpu=cortex-a53 -mtune=cortex-a53
-          - artifact-name: pi3
-            cpu: arm
-            arm-cpu: cortex-a53+nocrypto
-            arm-tune: cortex-a53
-          
-          - artifact-name: pi3-64
-            cpu: arm64
-            arm-cpu: cortex-a53+nocrypto
-            arm-tune: cortex-a53
-            
-          # Pi 4 is a Cortex-A72, but doesn't support cryptography instructions.
-          # Use -mcpu=cortex-a72+nocrypto -mtune=cortex-a72
-          - artifact-name: pi4
-            cpu: arm
-            arm-cpu: cortex-a72+nocrypto
-            arm-tune: cortex-a72
-
-          - artifact-name: pi4-64
-            cpu: arm64
-            arm-cpu: cortex-a72+nocrypto
-            arm-tune: cortex-a72
-          
-          # Use -mcpu=generic -mtune=generic for the generic builds.
-          - artifact-name: armv7-generic
-            cpu: arm
-            arm-cpu: generic
-            arm-tune: generic
-            x64-gen-snapshot-path: clang_x64/gen_snapshot
-            arm-gen-snapshot-path: gen_snapshot
-            arm64-gen-snapshot-path: clang_arm64/gen_snapshot
-            
-          - artifact-name: aarch64-generic
-            cpu: arm64
-            arm-cpu: generic
-            arm-tune: generic
-            x64-gen-snapshot-path: clang_x64/gen_snapshot
-            arm-gen-snapshot-path: clang_arm/gen_snapshot
-            arm64-gen-snapshot-path: clang_arm64/gen_snapshot
-          
-          - artifact-name: x64-generic
-            cpu: x64
-            arm-gen-snapshot-path: clang_arm/gen_snapshot
-            arm64-gen-snapshot-path: clang_arm64/gen_snapshot
-          
-          # For x64, we need to differentiate between ubuntu and macos host.
-          # For ubuntu x64, the gen_snapshot target is just gen_snapshot,
-          # for macOS x64, the gen_snapshot target is clang_x64/gen_snapshot.
-          - os: ubuntu-latest
-            artifact-name: x64-generic
-            x64-gen-snapshot-path: gen_snapshot
-          
-          - os: macos-13
-            artifact-name: x64-generic
-            x64-gen-snapshot-path: clang_x64/gen_snapshot
-          
-          # One-off job for building the universal artifacts.
-          - artifact-name: universal
-            os: ubuntu-latest
-            # flavor:
-            # unoptimized:
-            # runtime-mode:
-            nostripped: false
-            build-engine: false
-            build-gen-snapshot: false
-            build-universal: true
-            split-debug-symbols: false
-            # x64-gen-snapshot-path: 
-            # arm-gen-snapshot-path: 
-            # arm64-gen-snapshot-path: 
-            # cpu: 
-            # arm-cpu:
-            # arm-tune: 
-          
+      matrix: ${{ fromJson(needs.load-matrix.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
 
