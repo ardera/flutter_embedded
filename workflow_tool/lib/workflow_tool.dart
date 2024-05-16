@@ -1,6 +1,3 @@
-import 'dart:ffi';
-import 'dart:html';
-
 const kRunnerImage = 'os';
 const kRunnerImageNice = 'os-nice';
 const kBuildEngine = 'build-engine';
@@ -147,7 +144,7 @@ Map<String, Object> genEngineConfig(Flavor flavor) {
 
 Map<String, Object> genRunnerConfig(GithubRunner runner) {
   return {
-    kRunnerImage: runner.os,
+    kRunnerImage: runner.name,
     kRunnerImageNice: runner.nice,
   };
 }
@@ -163,13 +160,13 @@ Map<String, Object> genGenSnapshotConfig(
     kUnoptimized: false,
     kSplitDebugSymbols: false,
     kNoStripped: false,
-    kX64GenSnapshotPath: runner.os == OS.linux && target.arch == Arch.x64
+    kX64GenSnapshotPath: runner.os == target.os && runner.arch == Arch.x64
         ? 'gen_snapshot'
         : 'clang_x64/gen_snapshot',
-    kARMGenSnapshotPath: runner.os == OS.linux && target.arch == Arch.arm
+    kARMGenSnapshotPath: runner.os == target.os && runner.arch == Arch.arm
         ? 'gen_snapshot'
         : 'clang_arm/gen_snapshot',
-    kARM64GenSnapshotPath: runner.os == OS.linux && target.arch == Arch.arm64
+    kARM64GenSnapshotPath: runner.os == target.os && runner.arch == Arch.arm64
         ? 'gen_snapshot'
         : 'clang_arm64/gen_snapshot',
   };
@@ -200,8 +197,13 @@ Object generateMatrix() {
   for (final target in targets) {
     final targetConfig = genTargetConfig(target);
 
-    // add the engine build job for that target
-    for (final flavor in flavors) {
+    // For the tuned targets, we only build the profile and release mode engine.
+    // Doesn't make sense to have a tuned version for a debug build.
+    final flavorsToBuild =
+        target.cpu == CPU.generic ? flavors : [Flavor.profile, Flavor.release];
+
+    for (final flavor in flavorsToBuild) {
+      // add the engine build job for that target
       addJob({
         ...targetConfig,
         ...genEngineConfig(flavor),
@@ -214,9 +216,13 @@ Object generateMatrix() {
 
     // build the gen_snapshot for AOT runtime modes
     for (final runtimeMode in aotRuntimeModes) {
-      final genSnapshotConfig = genGenSnapshotConfig(runtimeMode);
-
       for (final runner in runners) {
+        final genSnapshotConfig = genGenSnapshotConfig(
+          runtimeMode,
+          runner: runner,
+          target: target,
+        );
+
         addJob({
           ...targetConfig,
           ...genSnapshotConfig,
