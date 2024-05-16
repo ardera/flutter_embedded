@@ -316,13 +316,11 @@ jobs:
             cpu: arm
             arm-cpu: cortex-a53+nocrypto
             arm-tune: cortex-a53
-            gen-snapshot-path: clang_x64/gen_snapshot
           
           - artifact-name: pi3-64
             cpu: arm64
             arm-cpu: cortex-a53+nocrypto
             arm-tune: cortex-a53
-            gen-snapshot-path: clang_x64/gen_snapshot
             
           # Pi 4 is a Cortex-A72, but doesn't support cryptography instructions.
           # Use -mcpu=cortex-a72+nocrypto -mtune=cortex-a72
@@ -330,40 +328,44 @@ jobs:
             cpu: arm
             arm-cpu: cortex-a72+nocrypto
             arm-tune: cortex-a72
-            gen-snapshot-path: clang_x64/gen_snapshot
 
           - artifact-name: pi4-64
             cpu: arm64
             arm-cpu: cortex-a72+nocrypto
             arm-tune: cortex-a72
-            gen-snapshot-path: clang_x64/gen_snapshot
           
           # Use -mcpu=generic -mtune=generic for the generic builds.
           - artifact-name: armv7-generic
             cpu: arm
             arm-cpu: generic
             arm-tune: generic
-            gen-snapshot-path: clang_x64/gen_snapshot
+            x64-gen-snapshot-path: clang_x64/gen_snapshot
+            arm-gen-snapshot-path: gen_snapshot
+            arm64-gen-snapshot-path: clang_arm64/gen_snapshot
             
           - artifact-name: aarch64-generic
             cpu: arm64
             arm-cpu: generic
             arm-tune: generic
-            gen-snapshot-path: clang_x64/gen_snapshot
+            x64-gen-snapshot-path: clang_x64/gen_snapshot
+            arm-gen-snapshot-path: clang_arm/gen_snapshot
+            arm64-gen-snapshot-path: clang_arm64/gen_snapshot
           
           - artifact-name: x64-generic
             cpu: x64
+            arm-gen-snapshot-path: clang_arm/gen_snapshot
+            arm64-gen-snapshot-path: clang_arm64/gen_snapshot
           
           # For x64, we need to differentiate between ubuntu and macos host.
           # For ubuntu x64, the gen_snapshot target is just gen_snapshot,
           # for macOS x64, the gen_snapshot target is clang_x64/gen_snapshot.
           - os: ubuntu-latest
             artifact-name: x64-generic
-            gen-snapshot-path: gen_snapshot
+            x64-gen-snapshot-path: gen_snapshot
           
           - os: macos-13
             artifact-name: x64-generic
-            gen-snapshot-path: clang_x64/gen_snapshot
+            x64-gen-snapshot-path: clang_x64/gen_snapshot
           
           # One-off job for building the universal artifacts.
           - artifact-name: universal
@@ -376,7 +378,9 @@ jobs:
             build-gen-snapshot: false
             build-universal: true
             split-debug-symbols: false
-            # gen-snapshot-path: 
+            # x64-gen-snapshot-path: 
+            # arm-gen-snapshot-path: 
+            # arm64-gen-snapshot-path: 
             # cpu: 
             # arm-cpu:
             # arm-tune: 
@@ -566,19 +570,45 @@ jobs:
           
           tar -cJvf ../engine-dbgsyms-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz *
 
-      - name: Package gen_snapshot
-        if: matrix.build-gen-snapshot
+      - name: Package x64 gen_snapshot
+        if: matrix.build-x64-gen-snapshot
         env:
           BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
           XZ_DEFAULTS: "-T 0"
         run: |
-          mkdir -p pkg-gen-snapshot
+          mkdir -p pkg-x64-gen-snapshot
 
-          pushd pkg-gen-snapshot
-          cp $BUILD_DIR/${{ matrix.gen-snapshot-path }} $BUILD_DIR/compile_commands.json .
+          pushd pkg-x64-gen-snapshot
+          cp $BUILD_DIR/${{ matrix.x64-gen-snapshot-path }} $BUILD_DIR/compile_commands.json .
           
-          tar -cJvf ../gen-snapshot-${{ runner.os }}-${{ runner.arch }}-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz *
+          tar -cJvf ../gen-snapshot-${{ runner.os }}-X64-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz *
 
+      - name: Package arm gen_snapshot
+        if: matrix.build-arm-gen-snapshot
+        env:
+          BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
+          XZ_DEFAULTS: "-T 0"
+        run: |
+          mkdir -p pkg-arm-gen-snapshot
+
+          pushd pkg-arm-gen-snapshot
+          cp $BUILD_DIR/${{ matrix.x64-gen-snapshot-path }} $BUILD_DIR/compile_commands.json .
+          
+          tar -cJvf ../gen-snapshot-${{ runner.os }}-ARM-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz *
+
+      - name: Package arm64 gen_snapshot
+        if: matrix.build-arm64-gen-snapshot
+        env:
+          BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
+          XZ_DEFAULTS: "-T 0"
+        run: |
+          mkdir -p pkg-arm64-gen-snapshot
+
+          pushd pkg-arm64-gen-snapshot
+          cp $BUILD_DIR/${{ matrix.x64-gen-snapshot-path }} $BUILD_DIR/compile_commands.json .
+          
+          tar -cJvf ../gen-snapshot-${{ runner.os }}-ARM64-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz *
+  
       - name: Package universal artifacts
         if: matrix.build-universal
         env:
@@ -597,19 +627,47 @@ jobs:
           
           tar -cJvf ../universal.tar.xz *
 
-      - name: Upload gen_snapshot
-        if: matrix.build-gen-snapshot
+      - name: Upload x64 gen_snapshot
+        if: matrix.build-x64-gen-snapshot
         uses: actions/upload-artifact@v3
         with:
-          name: gen-snapshot-${{ runner.os }}-${{ matrix.artifact-name }}-${{ matrix.flavor }}
-          path: pkg-gen-snapshot/*
+          name: gen-snapshot-${{ runner.os }}-X64-${{ matrix.artifact-name }}-${{ matrix.flavor }}
+          path: pkg-x64-gen-snapshot/*
       
-      - name: Upload gen_snapshot (.tar.xz)
-        if: matrix.build-gen-snapshot
+      - name: Upload x64 gen_snapshot (.tar.xz)
+        if: matrix.build-x64-gen-snapshot
         uses: actions/upload-artifact@v3
         with:
-          name: gen-snapshot-${{ runner.os }}-${{ runner.arch }}-${{ matrix.artifact-name }}-${{ matrix.flavor }}-tar-xz
-          path: gen-snapshot-${{ runner.os }}-${{ runner.arch }}-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz
+          name: gen-snapshot-${{ runner.os }}-X64-${{ matrix.artifact-name }}-${{ matrix.flavor }}-tar-xz
+          path: gen-snapshot-${{ runner.os }}-X64-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz
+
+      - name: Upload arm gen_snapshot
+        if: matrix.build-arm-gen-snapshot
+        uses: actions/upload-artifact@v3
+        with:
+          name: gen-snapshot-${{ runner.os }}-ARM-${{ matrix.artifact-name }}-${{ matrix.flavor }}
+          path: pkg-arm-gen-snapshot/*
+        
+      - name: Upload arm gen_snapshot (.tar.xz)
+        if: matrix.build-arm-gen-snapshot
+        uses: actions/upload-artifact@v3
+        with:
+          name: gen-snapshot-${{ runner.os }}-ARM-${{ matrix.artifact-name }}-${{ matrix.flavor }}-tar-xz
+          path: gen-snapshot-${{ runner.os }}-ARM-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz
+    
+      - name: Upload arm64 gen_snapshot
+        if: matrix.build-arm64-gen-snapshot
+        uses: actions/upload-artifact@v3
+        with:
+          name: gen-snapshot-${{ runner.os }}-ARM64-${{ matrix.artifact-name }}-${{ matrix.flavor }}
+          path: pkg-arm64-gen-snapshot/*
+        
+      - name: Upload arm64 gen_snapshot (.tar.xz)
+        if: matrix.build-arm64-gen-snapshot
+        uses: actions/upload-artifact@v3
+        with:
+          name: gen-snapshot-${{ runner.os }}-ARM64-${{ matrix.artifact-name }}-${{ matrix.flavor }}-tar-xz
+          path: gen-snapshot-${{ runner.os }}-ARM64-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz
 
       - name: Upload engine
         if: matrix.build-engine

@@ -1,0 +1,29 @@
+From a35d86fdbbf421442dc31c23c8412873078232e2 Mon Sep 17 00:00:00 2001
+From: Hannes Winkler <hanneswinkler2000@web.de>
+Date: Sun, 24 Mar 2024 19:26:18 +0000
+Subject: [PATCH 2/2] build all gen_snapshots by default
+
+---
+ BUILD.gn | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 49784eff36..14da162021 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -96,6 +96,12 @@ group("flutter") {
+   if (!is_fuchsia) {
+     public_deps += [ "//flutter/lib/snapshot:generate_snapshot_bins" ]
+ 
++    if (host_os == "linux") {
++      public_deps += [ "$dart_src/runtime/bin:gen_snapshot(//build/toolchain/linux:clang_x64)" ]
++      public_deps += [ "$dart_src/runtime/bin:gen_snapshot(//build/toolchain/linux:clang_arm64)" ]
++      public_deps += [ "$dart_src/runtime/bin:gen_snapshot(//build/toolchain/linux:clang_arm)" ]
++    }
++
+     if (build_engine_artifacts) {
+       public_deps += [
+         "//flutter/build/dart:dart_sdk",
+-- 
+2.39.2
+
