@@ -20,6 +20,7 @@ defaults:
 env:
   XZ_DEFAULTS: "-T 0"
   GCLIENT_PY3: 1
+  DEPOT_TOOLS_UPDATE: 0
   DEPOT_TOOLS_WIN_TOOLCHAIN: 0
 
 jobs:
@@ -71,10 +72,6 @@ jobs:
           - ubuntu-latest
           - macos-13
           - windows-latest
-    env:
-      DEPOT_TOOLS_WIN_TOOLCHAIN: 0
-      GCLIENT_PY3: 1
-
     steps:
       - uses: actions/checkout@v4
       
@@ -158,6 +155,8 @@ jobs:
       - name: Install engine sources
         if: steps.cache-lookup.outputs.cache-hit != 'true'
         working-directory: engine
+        env:
+          DEPOT_TOOLS_UPDATE: 1
         run: |
           gclient sync --no-history --shallow --revision src/flutter@${{ needs.resolve-version.outputs.first-semver }} -R -D
       
@@ -253,8 +252,6 @@ jobs:
     strategy:
       matrix: 
         include: ${{ fromJson(needs.load-matrix.outputs.matrix) }}
-    env:
-      DEPOT_TOOLS_UPDATE: 0
     steps:
       - uses: actions/checkout@v4
 
@@ -327,6 +324,8 @@ jobs:
       
       - name: Run gclient --version (Unix)
         if: runner.os != 'Windows'
+        env:
+          DEPOT_TOOLS_UPDATE: 1
         run: |
           gclient --version
       
@@ -335,6 +334,8 @@ jobs:
       - name: Run gclient --version (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          DEPOT_TOOLS_UPDATE: 1
         run: |
           gclient --version
           
