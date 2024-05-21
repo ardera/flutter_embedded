@@ -303,13 +303,13 @@ Object generateMatrix() {
   addJob({
     kJobName: 'build universal artifacts',
     kArtifactName: 'universal',
-    kRunnerImage: 'ubuntu',
+    ...genRunnerConfig(GithubRunner.ubuntuLatest),
     kNoStripped: false,
     kBuildEngine: false,
     kBuildARMGenSnapshot: false,
     kBuildARM64GenSnapshot: false,
     kBuildX64GenSnapshot: false,
-    kBuildUniversal: false,
+    kBuildUniversal: true,
     kSplitDebugSymbols: false,
   });
 

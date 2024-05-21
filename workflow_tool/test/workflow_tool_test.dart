@@ -310,4 +310,35 @@ void main() {
       ),
     );
   });
+
+  test('every job has a known runner image set', () {
+    final matrix = generateMatrix();
+
+    final anyKnownRunnerImage =
+        anyOf('ubuntu-latest', 'macos-latest', 'macos-13', 'windows-latest');
+
+    expect(
+      matrix,
+      everyElement(allOf(
+        containsPair('os', anyKnownRunnerImage),
+        containsPair('os-nice', anyOf('Linux', 'MacOS', 'Windows')),
+      )),
+    );
+  });
+
+  test('every job has a job name', () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      everyElement(
+        allOf(
+          containsPair(
+            'job-name',
+            isA<String>(),
+          ),
+        ),
+      ),
+    );
+  });
 }
