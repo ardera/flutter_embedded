@@ -100,7 +100,7 @@ jobs:
         id: cache-lookup
         with:
           path: engine
-          key: engine-${{ needs.resolve-version.outputs.engine-hash }}-${{ runner.os }}
+          key: engine-${{ needs.resolve-version.outputs.engine-hash }}-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true
       
       - name: Install depot tools
@@ -109,7 +109,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ${{ github.workspace }}/depot_tools
-          key: ${{ runner.os }}-depot-tools
+          key: ${{ runner.os }}-${{ runner.arch }}-depot-tools
 
       - name: Clone depot_tools (if not cached)
         if: steps.cache-lookup.outputs.cache-hit != 'true' && steps.cache-depot-tools.outputs.cache-hit != 'true'
@@ -207,7 +207,7 @@ jobs:
         if: steps.cache-lookup.outputs.cache-hit != 'true'
         with:
           path: engine
-          key: engine-${{ needs.resolve-version.outputs.engine-hash }}-${{ runner.os }}
+          key: engine-${{ needs.resolve-version.outputs.engine-hash }}-${{ runner.os }}-${{ runner.arch }}
   
   load-matrix:
     runs-on: ubuntu-latest
@@ -250,6 +250,7 @@ jobs:
           echo '*** build config: ***'
           echo matrix.os: ${{ matrix.os }}
           echo runner.os: ${{ runner.os }}
+          echo runner.arch: ${{ runner.arch }}
           echo artifact name: ${{ matrix.artifact-name }}
           echo flavor: ${{ matrix.flavor }}
           echo runtime-mode: ${{ matrix.runtime-mode }}
@@ -269,7 +270,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ${{ github.workspace }}/depot_tools
-          key: ${{ runner.os }}-depot-tools
+          key: ${{ runner.os }}-${{ runner.arch }}-depot-tools
       
       - name: Clone depot tools
         if: steps.cache-depot-tools.outputs.cache-hit != 'true'
@@ -295,7 +296,7 @@ jobs:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 10
         with:
           path: engine
-          key: engine-${{ needs.resolve-version.outputs.engine-hash }}-${{ runner.os }}
+          key: engine-${{ needs.resolve-version.outputs.engine-hash }}-${{ runner.os }}-${{ runner.arch }}
           fail-on-cache-miss: true
   
       - name: Apply patches
