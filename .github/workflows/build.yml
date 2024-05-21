@@ -325,7 +325,16 @@ jobs:
         run: |
           echo "${{ github.workspace }}\depot_tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       
-      - name: Run gclient --version
+      - name: Run gclient --version (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          gclient --version
+      
+      # Needs to be run using powershell, otherwise it doesn't
+      # create the git.bat that flutter/tools/gn assumes to be present.
+      - name: Run gclient --version (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           gclient --version
           
