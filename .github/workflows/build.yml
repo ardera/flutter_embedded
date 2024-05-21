@@ -233,6 +233,14 @@ jobs:
           echo "matrix<<$EOF" >> "$GITHUB_OUTPUT"
           dart run bin/workflow_tool.dart >> "$GITHUB_OUTPUT"
           echo "$EOF" >> "$GITHUB_OUTPUT"
+      
+      - name: Test load matrix
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+          echo MATRIX:
+          echo '${{ fromJson(steps.load-matrix.outputs.matrix) }}' | jq .
 
   build:
     name: "build ${{ matrix.build-universal && 'universal artifacts' || '' }}${{ matrix.build-engine && format('engine for {0} {1}', matrix.artifact-name, matrix.flavor) || '' }}${{ matrix.build-engine && matrix.build-gen-snapshot && ', ' || ''}}${{ matrix.build-gen-snapshot && format('{0} gen_snapshot for {1} {2}', matrix.os-nice, matrix.artifact-name, matrix.flavor) || ''}}"
