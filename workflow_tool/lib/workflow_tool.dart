@@ -188,10 +188,10 @@ Map<String, Object> genGenSnapshotConfig(
     kBuildARM64GenSnapshot: runner.os == OS.linux || runner.arch == Arch.arm64,
     kBuildX64GenSnapshot: runner.os == OS.linux || runner.arch == Arch.x64,
 
-    kX64GenSnapshotPath: target.os == OS.linux && target.arch == Arch.x64
+    kX64GenSnapshotPath: runner.os == OS.linux && target.arch == Arch.x64
         ? 'gen_snapshot'
         : 'clang_x64/gen_snapshot',
-    kARMGenSnapshotPath: target.os == OS.linux && target.arch == Arch.arm
+    kARMGenSnapshotPath: runner.os == OS.linux && target.arch == Arch.arm
         ? 'gen_snapshot'
         : 'clang_arm/gen_snapshot',
     kARM64GenSnapshotPath: runner.os == OS.linux && target.arch == Arch.arm64
