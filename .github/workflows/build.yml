@@ -412,7 +412,7 @@ jobs:
         if: matrix.build-engine && matrix.split-debug-symbols
         working-directory: ${{ github.workspace }}/engine/src/out/build/
         run: |
-          OBJCOPY="$GITHUB_WORKSPACE_POSIX/engine/src/flutter/buildtools/linux-x64/clang/bin/llvm-objcopy"
+          OBJCOPY="$GITHUB_WORKSPACE_UNIX/engine/src/flutter/buildtools/linux-x64/clang/bin/llvm-objcopy"
           
           $OBJCOPY --only-keep-debug libflutter_engine.so libflutter_engine.dbgsyms
           $OBJCOPY --strip-debug libflutter_engine.so
