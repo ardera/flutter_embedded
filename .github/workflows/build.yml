@@ -575,7 +575,7 @@ jobs:
         if: matrix.build-engine
         uses: actions/upload-artifact@v4
         with:
-          name: engine-${{ matrix.artifact-name }}-${{ matrix.flavor }}
+          name: engine-dbgsyms-${{ matrix.artifact-name }}-${{ matrix.flavor }}
           path: pkg-engine-dbgsyms/*
       
       - name: Upload engine debug symbols (.tar.xz)
