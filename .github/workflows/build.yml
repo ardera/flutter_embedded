@@ -239,11 +239,11 @@ jobs:
           apt-get update && apt-get install -y jq
 
           echo "::group::raw matrix"
-          echo ${{ steps.load-matrix.outputs.matrix }}
+          echo '${{ steps.load-matrix.outputs.matrix }}'
           echo "::endgroup::"
 
           echo "::group::jq prettify matrix"
-          echo ${{ steps.load-matrix.outputs.matrix }} | jq .
+          echo '${{ steps.load-matrix.outputs.matrix }}' | jq .
           echo "::endgroup::"
 
           echo "::group::jq prettify parsed & serialized matrix"
