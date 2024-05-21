@@ -238,8 +238,17 @@ jobs:
         run: |
           apt-get update && apt-get install -y jq
 
-          echo MATRIX:
+          echo "::group::raw matrix"
+          echo ${{ steps.load-matrix.outputs.matrix }}
+          echo "::endgroup::"
+
+          echo "::group::jq prettify matrix"
+          echo ${{ steps.load-matrix.outputs.matrix }} | jq .
+          echo "::endgroup::"
+
+          echo "::group::jq prettify parsed & serialized matrix"
           echo '${{ fromJson(steps.load-matrix.outputs.matrix) }}' | jq .
+          echo "::endgroup::"
 
   build:
     name: "build ${{ matrix.build-universal && 'universal artifacts' || '' }}${{ matrix.build-engine && format('engine for {0} {1}', matrix.artifact-name, matrix.flavor) || '' }}${{ matrix.build-engine && matrix.build-gen-snapshot && ', ' || ''}}${{ matrix.build-gen-snapshot && format('{0} gen_snapshot for {1} {2}', matrix.os-nice, matrix.artifact-name, matrix.flavor) || ''}}"
