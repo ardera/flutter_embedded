@@ -217,11 +217,17 @@ void main() {
       matrix,
       everyElement(allOf(
         allOfOrNone(
-          containsPair('flavor', 'debug_unopt'),
+          allOf(
+            containsPair('build-engine', true),
+            containsPair('flavor', 'debug_unopt'),
+          ),
           containsPair('unoptimized', true),
         ),
         allOfOrNone(
-          containsPair('flavor', anyOf('debug', 'profile', 'release')),
+          allOf(
+            containsPair('build-engine', true),
+            containsPair('flavor', anyOf('debug', 'profile', 'release')),
+          ),
           containsPair('unoptimized', false),
         ),
       )),
@@ -236,7 +242,7 @@ void main() {
       everyElement(
         allOfOrNone(
           containsPair('build-engine', true),
-          containsPair('no-stripped', true),
+          containsPair('nostripped', true),
         ),
       ),
     );
@@ -257,6 +263,50 @@ void main() {
           containsPair(
               'arm-tune', anyOf('generic', 'cortex-a53', 'cortex-a72')),
         ),
+      ),
+    );
+  });
+
+  test('any engine build job is present', () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      anyElement(
+        containsPair('build-engine', true),
+      ),
+    );
+  });
+
+  test('any x64 host gen_snapshot build job is present', () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      anyElement(
+        containsPair('build-x64-gen-snapshot', true),
+      ),
+    );
+  });
+
+  test('any arm host gen_snapshot build job is present', () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      anyElement(
+        containsPair('build-arm-gen-snapshot', true),
+      ),
+    );
+  });
+
+  test('any arm64 host gen_snapshot build job is present', () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      anyElement(
+        containsPair('build-arm64-gen-snapshot', true),
       ),
     );
   });
