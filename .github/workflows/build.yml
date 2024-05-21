@@ -65,6 +65,10 @@ jobs:
           - ubuntu-latest
           - macos-13
           - windows-latest
+    env:
+      DEPOT_TOOLS_WIN_TOOLCHAIN: 0
+      GCLIENT_PY3: 1
+
     steps:
       - uses: actions/checkout@v4
       
@@ -94,10 +98,7 @@ jobs:
       - name: Setup depot_tools
         if: steps.cache-lookup.outputs.cache-hit != 'true'
         run: |
-          echo GCLIENT_PY3=1 >> $GITHUB_ENV
           echo $GITHUB_WORKSPACE/depot_tools >> $GITHUB_PATH
-          echo DEPOT_TOOLS_WIN_TOOLCHAIN=0 >> $GITHUB_PATH
-        # echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
       
       - name: Print depot_tools debug info
         if: steps.cache-lookup.outputs.cache-hit != 'true'
