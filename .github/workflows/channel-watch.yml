@@ -47,39 +47,17 @@ jobs:
           echo '*** Stable engine commit changed? ***'
           echo steps.check-roll.outputs.changed: ${{ steps.check-roll.outputs.changed }}
       
-      - uses: actions/cache@v3
-        if: ${{ steps.check-roll.outputs.changed == 'true' }}
-        with:
-          path: flutter
-          key: flutter-sdk-repo
-      
-      # We need to checkout the complete flutter SDK to find the semver.
-      - name: Checkout flutter SDK
-        if: ${{ steps.check-roll.outputs.changed == 'true' }}
-        uses: actions/checkout@v3
-        with:
-          repository: flutter/flutter
-          ref: stable
-          path: flutter
-          fetch-depth: 0  # fetch complete history
-      
       # reference: https://github.com/flutter/flutter/blob/a880c4ed3590477380c975f867406ba336834848/packages/flutter_tools/lib/src/version.dart#L703
       # if the flutter people ever decide to point more than one tags at the stable SDK commit we're in trouble here
       - name: find out flutter SDK semver for this engine version
         id: flutter-version
         if: ${{ steps.check-roll.outputs.changed == 'true' }}
-        working-directory: flutter
         run: |
-          echo ::set-output name=semver::$(git tag --points-at HEAD | tr -d [:space:])
-          echo flutter version: ${{ steps.flutter-version.outputs.semver }}
-      
-      - name: Read stable engine version
-        id: engine-commit
-        if: ${{ steps.check-roll.outputs.changed == 'true' }}
-
-        # Read the engine.version.stable file and trim away anything that's not a hex digit
-        # (So we don't include whitespace in the output variable, if that's possible)
-        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
+          # read the engine.version.stable file to find the engine commit hash
+          # we're build for
+          ENGINE_HASH=$(cat engine.version.stable | tr -dc [:xdigit:])
+          
+          echo "hash=$ENGINE_HASH" >> $GITHUB_OUTPUT
       
       - name: Commit new stable engine version
         # the if is not really necessary since the add-and-commit action won't push empty commits, but this way it feels safer
@@ -90,5 +68,5 @@ jobs:
           default_author: github_actions
           message: 'Roll engine (stable)'
           add: 'engine.version.stable'
-          tag: engine/${{ steps.engine-commit.outputs.hash }} --force
+          tag: engine/${{ steps.flutter-version.outputs.hash }} --force
           tag_push: '--force'

@@ -15,71 +15,39 @@ jobs:
     name: 'Resolve relevant flutter versions'
     runs-on: ubuntu-latest
     outputs:
-      engine-hash: ${{ steps.engine-commit.outputs.hash }}
-      first-semver: ${{ steps.flutter-sdk-version.outputs.first-semver }}
-      sdk-semvers: ${{ steps.flutter-sdk-version.outputs.semvers }}
+      engine-hash: ${{ steps.resolve.outputs.hash }}
+      first-semver: ${{ steps.resolve.outputs.first-semver }}
+      sdk-semvers: ${{ steps.resolve.outputs.semvers }}
     steps:
       - uses: actions/checkout@v4
-        
-      - run: |
-          echo github.ref: ${{ github.ref }}
 
-      - name: Read stable engine version
-        id: engine-commit
+      - name: Resolve engine hash & SDK version
+        id: resolve
+        env:
+          GIT_BASECMD: "git -c gc.autoDetach=false -c core.pager=cat -c safe.bareRepository=all"
+          ENGINE_REPO: "https://github.com/flutter/engine.git"
+        run: |
+          # read the engine.version.stable file to find the engine commit hash
+          # we're build for
+          ENGINE_HASH=$(cat engine.version.stable | tr -dc [:xdigit:])
 
-        # Read the engine.version.stable file and trim away anything that's not a hex digit
-        # (So we don't include whitespace in the output variable, if that's possible)
-        run: echo "hash=$(cat engine.version.stable | tr -dc [:xdigit:])" >> $GITHUB_OUTPUT
-      
-      - name: Log stable engine version
-        run: |
-          echo stable engine version: "${{ steps.engine-commit.outputs.hash }}"
-      
-      - name: Cache flutter engine
-        id: cache-engine
-        uses: actions/cache@v4
-        with:
-          key: ${{ runner.os }}-flutter-engine
-          path: flutter_engine
-
-      # We need to checkout the complete flutter SDK to find the semver.
-      - name: Checkout flutter engine
-        uses: actions/checkout@v4
-        with:
-          repository: flutter/engine
-          ref: ${{ steps.engine-commit.outputs.hash }}
-          path: flutter_engine
-          fetch-depth: 0  # fetch complete history
-      
-      - name: Log git status
-        working-directory: flutter_engine
-        run: |
-          git status
-          git tag -l --points-at ${{ steps.engine-commit.outputs.hash }}
-      
-      # reference: https://github.com/flutter/flutter/blob/a880c4ed3590477380c975f867406ba336834848/packages/flutter_tools/lib/src/version.dart#L703
-      # if the flutter people ever decide to point more than one tags at the stable SDK commit we're in trouble here
-      - name: Find out flutter SDK semvers for this engine version
-        id: flutter-sdk-version
-        working-directory: flutter_engine
-        run: |
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-         
-          echo "semvers<<$EOF" >> "$GITHUB_OUTPUT"
-          (( echo "[" && git tag -l --points-at ${{ steps.engine-commit.outputs.hash }} --format='"%(refname:strip=2)",' && echo "null]" ) | tr -d [:space:] ) | jq -cM .[:-1] >> "$GITHUB_OUTPUT"
-          echo "$EOF" >> "$GITHUB_OUTPUT"
-
-          echo "first-semver=$(git tag -l --points-at ${{ steps.engine-commit.outputs.hash }} | head -n1)" >> "$GITHUB_OUTPUT"
-
-      - name: Log flutter SDK semvers
-        run: |
-          echo unparsed flutter sdk semvers for engine "${{ steps.engine-commit.outputs.hash }}":
-          echo "${{ steps.flutter-sdk-version.outputs.semvers }}"
-      
-      - name: Parse flutter SDK semvers
-        run: |
-          echo parsed semvers:
-          echo ${{ fromJson(steps.flutter-sdk-version.outputs.semvers) }}
+          # Get all (full-qualified) tags that point to the engine commit
+          # e.g. refs/tags/2.10.0-0.0.pre.0
+          REFS=$($GIT_BASECMD ls-remote --tags $ENGINE_REPO | grep $ENGINE_HASH | cut -f2)
+          
+          # Extract the tag names from the full-qualified refs
+          # e.g. 2.10.0-0.0.pre.0
+          TAGS=$(echo "$REFS" | cut -d/ -f3 | sort -V)
+          
+          # Extract the first tag
+          FIRST_TAG=$(echo "$TAGS" | head -n1)
+          
+          # Serialize the tags to JSON
+          TAGS_JSON="$(echo "$TAGS" | jq -ncMR '[inputs]')"
+          
+          echo "hash=$ENGINE_HASH" >> $GITHUB_OUTPUT
+          echo "first-semver=$FIRST_TAG" >> $GITHUB_OUTPUT
+          echo "semvers=$TAGS_JSON" >> $GITHUB_OUTPUT
 
   populate-engine-src-cache:
     name: 'Prepopulate engine source cache'
