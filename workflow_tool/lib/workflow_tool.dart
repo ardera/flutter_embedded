@@ -47,16 +47,35 @@ enum OS {
   }
 }
 
-enum Arch {
-  x64('X64', 'x64', 'x64'),
-  arm('ARM', 'arm', 'armv7'),
-  arm64('ARM64', 'arm64', 'aarch64');
+enum Bitness {
+  bits32('32-bits'),
+  bits64('64-bits');
 
-  const Arch(this.ghActionsName, this.flutterCpu, this.ciName);
+  const Bitness(this.name);
+
+  final String name;
+
+  @override
+  String toString() {
+    return name;
+  }
+}
+
+enum Arch {
+  x64.bits64('X64', 'x64', 'x64'),
+  arm.bits32('ARM', 'arm', 'armv7'),
+  arm64.bits64('ARM64', 'arm64', 'aarch64');
+
+  const Arch.bits32(this.ghActionsName, this.flutterCpu, this.ciName)
+      : bitness = Bitness.bits32;
+
+  const Arch.bits64(this.ghActionsName, this.flutterCpu, this.ciName)
+      : bitness = Bitness.bits64;
 
   final String ghActionsName;
   final String flutterCpu;
   final String ciName;
+  final Bitness bitness;
 
   @override
   String toString() => ciName;
@@ -184,19 +203,33 @@ Map<String, Object> genGenSnapshotConfig(
     kRuntimeMode: mode.toString(),
 
     // We can only cross-compile the gen_snapshots on linux right now.
-    kBuildARMGenSnapshot: runner.os == OS.linux || runner.arch == Arch.arm,
+    // MacOS still supports building the gen_snapshot for the host only.
+
+    // Normally, gen_snapshot can only compile code for architectures that
+    // match the host "bitness" (e.g. 32-bit or 64-bit).
+    //
+    // However, there's an exception for arm (32-bit), so all 64-bit architectures
+    // can generate code for arm (32-bit).
+    //
+    // See: https://github.com/dart-lang/sdk/blob/main/runtime/platform/globals.h#L340
+    //
+    // There's no exception for arm (32-bit) targetting aarch64 or x64 though.
+    // So the ARM (32-bit) host gen_snapshot can only be built when targetting
+    // armv7 as well.
+    kBuildARMGenSnapshot: (runner.os == OS.linux && target.arch == Arch.arm) ||
+        runner.arch == Arch.arm,
     kBuildARM64GenSnapshot: runner.os == OS.linux || runner.arch == Arch.arm64,
     kBuildX64GenSnapshot: runner.os == OS.linux || runner.arch == Arch.x64,
 
-    kX64GenSnapshotPath: runner.os == OS.linux && target.arch == Arch.x64
-        ? 'gen_snapshot'
-        : 'clang_x64/gen_snapshot',
     kARMGenSnapshotPath: runner.os == OS.linux && target.arch == Arch.arm
         ? 'gen_snapshot'
         : 'clang_arm/gen_snapshot',
     kARM64GenSnapshotPath: runner.os == OS.linux && target.arch == Arch.arm64
         ? 'gen_snapshot'
         : 'clang_arm64/gen_snapshot',
+    kX64GenSnapshotPath: runner.os == OS.linux && target.arch == Arch.x64
+        ? 'gen_snapshot'
+        : 'clang_x64/gen_snapshot',
   };
 }
 
