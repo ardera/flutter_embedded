@@ -17,6 +17,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  XZ_DEFAULTS: "-T 0"
+
 jobs:
   resolve-version:
     name: 'Resolve relevant flutter versions'
@@ -287,6 +290,9 @@ jobs:
           echo x64-gen-snapshot-path: ${{ matrix.x64-gen-snapshot-path }}
           
           echo build-universal: ${{ matrix.build-universal }}
+
+          echo "GITHUB_WORKSPACE_UNIX=$(realpath .)" >> $GITHUB_ENV
+          echo "BUILD_DIR=$GITHUB_WORKSPACE_UNIX/engine/src/out/build" >> $GITHUB_ENV
           
       - name: Cache depot tools
         id: cache-depot-tools
@@ -326,23 +332,22 @@ jobs:
   
       - name: Apply patches
         working-directory: engine/src
-        shell: bash
         # use git apply instead of git am to avoid `Committer identity unknown` error
         run: |
           echo Applying buildroot patches... 
-          git apply $GITHUB_WORKSPACE/buildroot-patches/*.patch
+          git apply $GITHUB_WORKSPACE_UNIX/buildroot-patches/*.patch
           git status
           
           pushd flutter
           echo Applying engine patches...
-          git apply $GITHUB_WORKSPACE/engine-patches/*.patch
+          git apply $GITHUB_WORKSPACE_UNIX/engine-patches/*.patch
           git status
           popd
 
-          if [ -d "$GITHUB_WORKSPACE/dart-patches" ]; then
+          if [ -d "$GITHUB_WORKSPACE_UNIX/dart-patches" ]; then
             pushd third_party/dart
 
-            git apply $GITHUB_WORKSPACE/dart-patches/*.patch
+            git apply $GITHUB_WORKSPACE_UNIX/dart-patches/*.patch
             git status
 
             popd
@@ -358,9 +363,9 @@ jobs:
           ./install-sysroot.py --arch=${{ matrix.cpu == 'x64' && 'amd64' || matrix.cpu }}
 
       - name: Configure engine
-        working-directory: engine
+        working-directory: engine/src
         run: |
-          ./src/flutter/tools/gn \
+          ./flutter/tools/gn \
             ${{ matrix.runtime-mode && format('--runtime-mode {0}', matrix.runtime-mode) || '' }} \
             ${{ matrix.cpu && '--target-os linux' || '' }} \
             ${{ matrix.cpu && format('--linux-cpu {0}', matrix.cpu) || '' }} \
@@ -390,12 +395,10 @@ jobs:
 
       - name: Add engine.version and dart-sdk.version file
         if: matrix.build-universal
-        env:
-          BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
         run: |
           cp engine.version.stable $BUILD_DIR/engine.version
-
-          pushd ${{ github.workspace }}/engine/src/third_party/dart
+          
+          pushd $GITHUB_WORKSPACE_UNIX/engine/src/third_party/dart
           git rev-parse HEAD > $BUILD_DIR/dart-sdk.version
           popd
       
@@ -403,7 +406,7 @@ jobs:
         if: matrix.build-engine && matrix.split-debug-symbols
         working-directory: ${{ github.workspace }}/engine/src/out/build/
         run: |
-          OBJCOPY='${{ github.workspace }}/engine/src/flutter/buildtools/linux-x64/clang/bin/llvm-objcopy'
+          OBJCOPY="$GITHUB_WORKSPACE_POSIX/engine/src/flutter/buildtools/linux-x64/clang/bin/llvm-objcopy"
           
           $OBJCOPY --only-keep-debug libflutter_engine.so libflutter_engine.dbgsyms
           $OBJCOPY --strip-debug libflutter_engine.so
@@ -411,9 +414,6 @@ jobs:
       
       - name: Package engine
         if: matrix.build-engine
-        env:
-          BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
-          XZ_DEFAULTS: "-T 0"
         run: |
           mkdir -p pkg-engine
 
@@ -424,9 +424,6 @@ jobs:
 
       - name: Package engine debug symbols
         if: matrix.build-engine && matrix.split-debug-symbols
-        env:
-          BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
-          XZ_DEFAULTS: "-T 0"
         run: |
           mkdir -p pkg-engine-dbgsyms
 
@@ -440,9 +437,6 @@ jobs:
 
       - name: Package x64 gen_snapshot
         if: matrix.build-x64-gen-snapshot
-        env:
-          BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
-          XZ_DEFAULTS: "-T 0"
         run: |
           mkdir -p pkg-x64-gen-snapshot
 
@@ -453,9 +447,6 @@ jobs:
 
       - name: Package arm gen_snapshot
         if: matrix.build-arm-gen-snapshot
-        env:
-          BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
-          XZ_DEFAULTS: "-T 0"
         run: |
           mkdir -p pkg-arm-gen-snapshot
 
@@ -466,9 +457,6 @@ jobs:
 
       - name: Package arm64 gen_snapshot
         if: matrix.build-arm64-gen-snapshot
-        env:
-          BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
-          XZ_DEFAULTS: "-T 0"
         run: |
           mkdir -p pkg-arm64-gen-snapshot
 
@@ -479,9 +467,6 @@ jobs:
   
       - name: Package universal artifacts
         if: matrix.build-universal
-        env:
-          BUILD_DIR: ${{ github.workspace }}/engine/src/out/build/
-          XZ_DEFAULTS: "-T 0"
         run: |
           mkdir -p pkg-universal
 
