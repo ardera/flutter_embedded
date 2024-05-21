@@ -264,6 +264,7 @@ Object generateMatrix() {
 
       if (buildGenSnapshot) {
         for (final runner in runners) {
+          // Only build the engine on the linux runner.
           final buildEngine = runner.os == OS.linux;
 
           addJob({
@@ -274,16 +275,12 @@ Object generateMatrix() {
               kJobName:
                   'build gen_snapshot (for: ${target.os} $target $flavor, host: ${runner.os})',
             ...targetConfig,
-
-            // Only build the engine on the linux runner.
             if (buildEngine) ...genEngineConfig(flavor),
-
             ...genGenSnapshotConfig(
               flavor.runtimeMode,
               runner: runner,
               target: target,
             ),
-
             ...genRunnerConfig(runner),
           });
         }
