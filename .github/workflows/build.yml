@@ -178,6 +178,14 @@ jobs:
         run: |
           gclient sync --no-history --shallow --revision src/flutter@${{ needs.resolve-version.outputs.first-semver }} -R -D
       
+      - name: Install linux arm sysroot
+        if: steps.cache-lookup.outputs.cache-hit != 'true' && runner.os == 'Linux'
+        working-directory: engine/src/build/linux/sysroot_scripts
+        run: |
+          ./install-sysroot.py --arch=arm
+          ./install-sysroot.py --arch=arm64
+          ./install-sysroot.py --arch=amd64
+
       - name: Delete unneeded dependencies
         if: steps.cache-lookup.outputs.cache-hit != 'true'
         working-directory: engine
@@ -348,14 +356,10 @@ jobs:
       # on a buildroot patch.
       - name: Download linux sysroot
         working-directory: engine/src/build/linux/sysroot_scripts
-        if: matrix.cpu
+        if: matrix.cpu && runner.os == 'MacOS'
         timeout-minutes: 5
-        run: ./install-sysroot.py --arch=${{ matrix.cpu == 'x64' && 'amd64' || matrix.cpu }}
-
-      - name: Override PKGCONFIG_PATH for linux arm
-        if: matrix.cpu == 'arm'
-        run:
-          echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/engine/src/build/linux/debian_sid_arm-sysroot/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
+        run: |
+          ./install-sysroot.py --arch=${{ matrix.cpu == 'x64' && 'amd64' || matrix.cpu }}
 
       - name: Configure engine
         working-directory: engine
@@ -364,7 +368,7 @@ jobs:
             ${{ matrix.runtime-mode && format('--runtime-mode {0}', matrix.runtime-mode) || '' }} \
             ${{ matrix.cpu && '--target-os linux' || '' }} \
             ${{ matrix.cpu && format('--linux-cpu {0}', matrix.cpu) || '' }} \
-            ${{ matrix.cpu == 'arm' && '--arm-float-abi hard' || ''}} \
+            --arm-float-abi hard \
             --target-dir build \
             --embedder-for-target \
             --disable-desktop-embeddings \
@@ -373,20 +377,9 @@ jobs:
             --no-enable-unittests \
             --no-goma \
             ${{ matrix.unoptimized && '--unoptimized' || ''}} \
-            ${{ matrix.nostripped && '--no-stripped' || ''}}
-      
-            
-      # TODO: Use --gn-args argument to specify arm_cpu and arm_tune.
-      - name: Append arm_cpu & arm_tune args
-        if: ${{ matrix.arm-cpu || matrix.arm-tune }}
-        working-directory: engine/src/out/build/
-        run: |
-          echo 'arm_cpu = "${{ matrix.arm-cpu }}"' >> args.gn
-          echo 'arm_tune = "${{ matrix.arm-tune }}"' >> args.gn
-          echo '*** args.gn file: ***'
-          cat args.gn
-          echo '*** rerunning gn gen ***'
-          gn gen --export-compile-commands .
+            ${{ matrix.nostripped && '--no-stripped' || ''}} \
+            ${{ matrix.arm-cpu && format('--gn-args ''arm_cpu="{0}"''', matrix.arm-cpu) || '' }} \
+            ${{ matrix.arm-tune && format('--gn-args ''arm_tune="{0}"''', matrix.arm-tune) || '' }} \
       
       - name: Build engine
         shell: bash
