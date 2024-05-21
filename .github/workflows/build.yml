@@ -53,6 +53,10 @@ jobs:
     name: 'Prepopulate engine source cache'
     runs-on: ${{ matrix.os }}
     needs: resolve-version
+
+    defaults:
+      run:
+        shell: bash
     
     # run on macos and linux.
     strategy:
