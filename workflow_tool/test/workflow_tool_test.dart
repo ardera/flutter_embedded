@@ -1,6 +1,8 @@
-import 'package:test/expect.dart';
 import 'package:workflow_tool/workflow_tool.dart';
 import 'package:test/test.dart';
+
+import 'all_of_or_none.dart';
+import 'contains_at_most_one.dart';
 
 void main() {
   final anyDebugFlavor = anyOf('debug_unopt', 'debug');
@@ -145,7 +147,7 @@ void main() {
           'x64-generic',
         ])
           for (final runtimeMode in ['release', 'profile'])
-            for (final os in ['macos-latest', 'ubuntu-latest'])
+            for (final os in ['macos-13', 'ubuntu-latest'])
               allOf(
                 containsPair('artifact-name', artifact),
                 containsPair('runtime-mode', runtimeMode),
@@ -153,6 +155,109 @@ void main() {
                 containsPair('os', os),
               ),
       ]),
+    );
+  });
+
+  test('every flavor has an equivalent runtime-mode set', () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      everyElement(allOf(
+        allOfOrNone(
+          containsPair('flavor', anyOf('debug_unopt', 'debug')),
+          containsPair('runtime-mode', 'debug'),
+        ),
+        allOfOrNone(
+          containsPair('flavor', 'profile'),
+          containsPair('runtime-mode', 'profile'),
+        ),
+        allOfOrNone(
+          containsPair('flavor', 'release'),
+          containsPair('runtime-mode', 'release'),
+        ),
+      )),
+    );
+  });
+
+  test('only one build for each artifact-name, flavor and host os', () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      allOf([
+        // These are all the combinations the engine is built for.
+        // There is not necessarily a MacOS job for every engine build,
+        //   on MacOS we only build gen_snapshot, so debug_unopt and debug
+        //   won't have a MacOS runner.
+        for (final artifact in [
+          'armv7-generic',
+          'aarch64-generic',
+          'x64-generic',
+          'pi3',
+          'pi3-64',
+          'pi4',
+          'pi4-64',
+        ])
+          for (final flavor in ['debug_unopt', 'debug', 'release', 'profile'])
+            for (final os in ['ubuntu-latest', 'macos-13'])
+              containsAtMostOne(allOf(
+                containsPair('os', os),
+                containsPair('artifact-name', artifact),
+                containsPair('flavor', flavor),
+              )),
+      ]),
+    );
+  });
+
+  test('unoptimized is only set for debug_unopt', () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      everyElement(allOf(
+        allOfOrNone(
+          containsPair('flavor', 'debug_unopt'),
+          containsPair('unoptimized', true),
+        ),
+        allOfOrNone(
+          containsPair('flavor', anyOf('debug', 'profile', 'release')),
+          containsPair('unoptimized', false),
+        ),
+      )),
+    );
+  });
+
+  test('no-stripped is set for every engine build', () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      everyElement(
+        allOfOrNone(
+          containsPair('build-engine', true),
+          containsPair('no-stripped', true),
+        ),
+      ),
+    );
+  });
+
+  test(
+      'arm-cpu, arm-tune are set for every build targetting arm/arm64, unset otherwise',
+      () {
+    final matrix = generateMatrix();
+
+    expect(
+      matrix,
+      everyElement(
+        allOfOrNone(
+          containsPair('cpu', anyOf('arm', 'arm64')),
+          containsPair('arm-cpu',
+              anyOf('generic', 'cortex-a53+nocrypto', 'cortex-a72+nocrypto')),
+          containsPair(
+              'arm-tune', anyOf('generic', 'cortex-a53', 'cortex-a72')),
+        ),
+      ),
     );
   });
 }

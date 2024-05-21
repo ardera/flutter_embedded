@@ -18,7 +18,8 @@ const kARM64GenSnapshotPath = 'arm64-gen-snapshot-path';
 
 enum GithubRunner {
   ubuntuLatest('ubuntu-latest', 'Linux', OS.linux),
-  macosLatest('macos-latest', 'MacOS', OS.macOS),
+  macosLatest('macos-latest', 'MacOS', OS.macOS, arch: Arch.arm64),
+  macos13('macos-13', 'MacOS', OS.macOS, arch: Arch.x64),
   windowsLatest('windows-latest', 'Windows', OS.windows);
 
   const GithubRunner(this.name, this.nice, this.os, {this.arch = Arch.x64});
@@ -127,8 +128,12 @@ Map<String, Object> genTargetConfig(Target target) {
   return {
     kArtifactName: target.toString(),
     kCPU: target.arch.flutterCpu,
-    kArmCPU: target.cpu.compilerCpu,
-    kArmTune: target.cpu.cmopilerTune,
+
+    /// TODO: add arm64_cpu and arm64_tune
+    if (target.arch == Arch.arm || target.arch == Arch.arm64) ...{
+      kArmCPU: target.cpu.compilerCpu,
+      kArmTune: target.cpu.cmopilerTune,
+    }
   };
 }
 
@@ -154,8 +159,16 @@ Map<String, Object> genGenSnapshotConfig(
   required GithubRunner runner,
   required Target target,
 }) {
+  assert(mode.isAOT);
+
   return {
     kBuildGenSnapshot: true,
+    kFlavor: switch (mode) {
+      RuntimeMode.profile => Flavor.profile,
+      RuntimeMode.release => Flavor.release,
+      _ => throw StateError('Invalid runtime mode: $mode')
+    }
+        .toString(),
     kRuntimeMode: mode.toString(),
     kUnoptimized: false,
     kSplitDebugSymbols: false,
@@ -192,7 +205,7 @@ Object generateMatrix() {
   final flavors = Flavor.values;
   final runtimeModes = RuntimeMode.values;
   final aotRuntimeModes = runtimeModes.where((mode) => mode.isAOT).toList();
-  final runners = {GithubRunner.ubuntuLatest, GithubRunner.macosLatest};
+  final runners = {GithubRunner.ubuntuLatest, GithubRunner.macos13};
 
   for (final target in targets) {
     final targetConfig = genTargetConfig(target);
@@ -204,45 +217,47 @@ Object generateMatrix() {
 
     for (final flavor in flavorsToBuild) {
       // add the engine build job for that target
-      addJob({
-        ...targetConfig,
-        ...genEngineConfig(flavor),
-        ...genRunnerConfig(GithubRunner.ubuntuLatest),
-      });
-    }
 
-    // only build gen_snapshot for generic targets
-    if (target.cpu != CPU.generic) continue;
+      // if we're building for generic CPUs, additionally build the gen_snapshot.
+      final buildGenSnapshot =
+          target.cpu == CPU.generic && flavor.buildGenSnapshot;
 
-    // build the gen_snapshot for AOT runtime modes
-    for (final runtimeMode in aotRuntimeModes) {
-      for (final runner in runners) {
-        final genSnapshotConfig = genGenSnapshotConfig(
-          runtimeMode,
-          runner: runner,
-          target: target,
-        );
+      if (buildGenSnapshot) {
+        for (final runner in runners) {
+          addJob({
+            ...targetConfig,
 
+            // Only build the engine on the linux runner.
+            if (runner == GithubRunner.ubuntuLatest) ...genEngineConfig(flavor),
+            ...genGenSnapshotConfig(
+              flavor.runtimeMode,
+              runner: runner,
+              target: target,
+            ),
+            ...genRunnerConfig(runner),
+          });
+        }
+      } else {
         addJob({
           ...targetConfig,
-          ...genSnapshotConfig,
-          ...genRunnerConfig(runner),
+          ...genEngineConfig(flavor),
+          ...genRunnerConfig(GithubRunner.ubuntuLatest),
         });
       }
     }
-
-    // add a job that builds the universal artifacts (flutter_embedder.h,
-    // icudtl.dat)
-    addJob({
-      kArtifactName: 'universal',
-      kRunnerImage: 'ubuntu',
-      kNoStripped: false,
-      kBuildEngine: false,
-      kBuildGenSnapshot: false,
-      kBuildUniversal: false,
-      kSplitDebugSymbols: false,
-    });
   }
+
+  // add a job that builds the universal artifacts (flutter_embedder.h,
+  // icudtl.dat)
+  addJob({
+    kArtifactName: 'universal',
+    kRunnerImage: 'ubuntu',
+    kNoStripped: false,
+    kBuildEngine: false,
+    kBuildGenSnapshot: false,
+    kBuildUniversal: false,
+    kSplitDebugSymbols: false,
+  });
 
   return jobs;
 }
