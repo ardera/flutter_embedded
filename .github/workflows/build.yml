@@ -10,6 +10,13 @@ on:
   workflow_dispatch:
   workflow_call:
   
+
+defaults:
+  # Use bash by default for all jobs, regardless of OS,
+  # so we can use the same commands for windows.
+  run:
+    shell: bash
+
 jobs:
   resolve-version:
     name: 'Resolve relevant flutter versions'
@@ -53,12 +60,6 @@ jobs:
     name: 'Prepopulate engine source cache'
     runs-on: ${{ matrix.os }}
     needs: resolve-version
-
-    defaults:
-      run:
-        shell: bash
-    
-    # run on macos and linux.
     strategy:
       matrix:
         os:
