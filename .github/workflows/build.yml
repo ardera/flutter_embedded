@@ -96,6 +96,7 @@ jobs:
         run: |
           echo GCLIENT_PY3=1 >> $GITHUB_ENV
           echo $GITHUB_WORKSPACE/depot_tools >> $GITHUB_PATH
+          echo DEPOT_TOOLS_WIN_TOOLCHAIN=0 >> $GITHUB_PATH
         # echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
       
       - name: Print depot_tools debug info
@@ -305,6 +306,7 @@ jobs:
           echo GCLIENT_PY3=1 >> $GITHUB_ENV
           echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
           echo $GITHUB_WORKSPACE/depot_tools >> $GITHUB_PATH
+          echo DEPOT_TOOLS_WIN_TOOLCHAIN=0 >> $GITHUB_PATH
       
       - name: Run gclient --version
         run: |
