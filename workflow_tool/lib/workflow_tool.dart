@@ -236,10 +236,10 @@ Object generateMatrix() {
           addJob({
             if (buildEngine)
               kJobName:
-                  'build $flavor engine, ${runner.os}-${runner.arch} $flavor gen_snapshot for ${target.os} $target'
+                  'build engine, gen_snapshot (for: ${target.os} $target $flavor, host: ${runner.os})'
             else
               kJobName:
-                  'build ${runner.os}-${runner.arch} $flavor gen_snapshot for ${target.os} $target',
+                  'build gen_snapshot (for: ${target.os} $target $flavor, host: ${runner.os})',
             ...targetConfig,
 
             // Only build the engine on the linux runner.
@@ -256,7 +256,7 @@ Object generateMatrix() {
         }
       } else {
         addJob({
-          kJobName: 'build $flavor engine for ${target.os} $target',
+          kJobName: 'build engine (for: ${target.os} $target $flavor)',
           ...targetConfig,
           ...genEngineConfig(flavor),
           ...genRunnerConfig(GithubRunner.ubuntuLatest),

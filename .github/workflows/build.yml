@@ -218,6 +218,7 @@ jobs:
           key: engine-${{ needs.resolve-version.outputs.engine-hash }}-${{ runner.os }}-${{ runner.arch }}
   
   load-matrix:
+    name: 'Generate build matrix'
     runs-on: ubuntu-latest
     container:
       image: dart:3.4
