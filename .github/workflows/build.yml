@@ -218,17 +218,20 @@ jobs:
     steps:
       # checkout
       - uses: actions/checkout@v3
+
+      - working-directory: workflow_tool
+        run: |
+          dart pub get
       
       # execute the workflow_tool to generate the matrix and store in matrix output variable
       - name: Load matrix
+        working-directory: workflow_tool
         id: load-matrix
         run: |
-          dart run workflow_tool/bin/workflow_tool.dart >> $GITHUB_OUTPUT
-
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-         
+
           echo "matrix<<$EOF" >> "$GITHUB_OUTPUT"
-          dart run workflow_tool/bin/workflow_tool.dart >> "$GITHUB_OUTPUT"
+          dart run bin/workflow_tool.dart >> "$GITHUB_OUTPUT"
           echo "$EOF" >> "$GITHUB_OUTPUT"
 
   build:
