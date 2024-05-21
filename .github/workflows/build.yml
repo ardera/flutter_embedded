@@ -247,11 +247,11 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::parsed & serialized matrix"
-          echo '${{ fromJson(steps.load-matrix.outputs.matrix) }}'
+          echo '${{ toJson(fromJson(steps.load-matrix.outputs.matrix)) }}'
           echo "::endgroup::"
 
           echo "::group::jq prettify parsed & serialized matrix"
-          echo '${{ fromJson(steps.load-matrix.outputs.matrix) }}' | jq .
+          echo '${{ toJson(fromJson(steps.load-matrix.outputs.matrix)) }}' | jq .
           echo "::endgroup::"
 
   build:
