@@ -263,7 +263,7 @@ jobs:
           echo "::endgroup::"
 
   build:
-    name: "build ${{ matrix.build-universal && 'universal artifacts' || '' }}${{ matrix.build-engine && format('engine for {0} {1}', matrix.artifact-name, matrix.flavor) || '' }}${{ matrix.build-engine && matrix.build-gen-snapshot && ', ' || ''}}${{ matrix.build-gen-snapshot && format('{0} gen_snapshot for {1} {2}', matrix.os-nice, matrix.artifact-name, matrix.flavor) || ''}}"
+    name: ${{ matrix.job-name }}
     runs-on: ${{ matrix.os }}
     needs: [ resolve-version, populate-engine-src-cache, load-matrix ]
     strategy:
@@ -274,26 +274,41 @@ jobs:
 
       - name: Log engine version & Build config
         run: |
-          echo *** engine version: ***
+          echo '*** engine version: ***'
           echo ${{ needs.resolve-version.outputs.engine-hash }}
-          echo '*** build config: ***'
+
+          echo '*** runner config: ***'
           echo matrix.os: ${{ matrix.os }}
+          echo matrix.os-nice: ${{ matrix.os-nice }}
           echo runner.os: ${{ runner.os }}
           echo runner.arch: ${{ runner.arch }}
+          
+          echo '*** target config: ***'
           echo artifact name: ${{ matrix.artifact-name }}
-          echo flavor: ${{ matrix.flavor }}
-          echo runtime-mode: ${{ matrix.runtime-mode }}
-          echo unoptimized: ${{ matrix.unoptimized }}
-          echo no-stripped: ${{ matrix.nostripped }}
-          echo build-engine: ${{ matrix.build-engine }}
-          echo build-gen-snapshot: ${{ matrix.build-gen-snapshot }}
-          echo build-universal: ${{ matrix.build-universal }}
-          echo split debug symbols: ${{ matrix.split-debug-symbols }}
-          echo gen_snapshot path: ${{ matrix.gen-snapshot-path }}
           echo cpu: ${{ matrix.cpu }}
           echo arm-cpu: ${{ matrix.arm-cpu }}
           echo arm-tune: ${{ matrix.arm-tune }}
-      
+          
+          echo '*** engine config: ***'
+          echo build-engine: ${{ matrix.build-engine }}
+          echo flavor: ${{ matrix.flavor }}
+          echo runtime-mode: ${{ matrix.runtime-mode }}
+          echo unoptimized: ${{ matrix.unoptimized }}
+          echo split debug symbols: ${{ matrix.split-debug-symbols }}
+          echo no-stripped: ${{ matrix.nostripped }}
+          
+          echo '*** gen_snapshot config: ***'
+          echo flavor: ${{ matrix.flavor }}
+          echo runtime-mode: ${{ matrix.runtime-mode }}
+          echo build-arm-gen-snapshot: ${{ matrix.build-arm-gen-snapshot }}
+          echo build-arm64-gen-snapshot: ${{ matrix.build-arm64-gen-snapshot }}
+          echo build-x64-gen-snapshot: ${{ matrix.build-x64-gen-snapshot }}
+          echo arm-gen-snapshot-path: ${{ matrix.arm-gen-snapshot-path }}
+          echo arm64-gen-snapshot-path: ${{ matrix.arm64-gen-snapshot-path }}
+          echo x64-gen-snapshot-path: ${{ matrix.x64-gen-snapshot-path }}
+          
+          echo build-universal: ${{ matrix.build-universal }}
+          
       - name: Cache depot tools
         id: cache-depot-tools
         uses: actions/cache/restore@v3
@@ -387,7 +402,9 @@ jobs:
         run: |
           ninja \
             ${{ matrix.build-engine && 'libflutter_engine.so' || '' }} \
-            ${{ matrix.build-gen-snapshot && matrix.gen-snapshot-path || '' }} \
+            ${{ matrix.build-x64-gen-snapshot && matrix.x64-gen-snapshot-path || '' }} \
+            ${{ matrix.build-arm-gen-snapshot && matrix.arm-gen-snapshot-path || '' }} \
+            ${{ matrix.build-arm64-gen-snapshot && matrix.arm64-gen-snapshot-path || '' }} \
             ${{ matrix.build-universal && 'flutter_embedder.h icudtl.dat' || '' }}
 
       - name: Add engine.version and dart-sdk.version file

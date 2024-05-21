@@ -89,12 +89,12 @@ void main() {
           allOf(
             containsPair('artifact-name', artifact),
             containsPair('runtime-mode', 'release'),
-            containsPair('build-gen-snapshot', true),
+            containsPair('build-x64-gen-snapshot', true),
           ),
           allOf(
             containsPair('artifact-name', artifact),
             containsPair('runtime-mode', 'profile'),
-            containsPair('build-gen-snapshot', true),
+            containsPair('build-x64-gen-snapshot', true),
           )
         ]
       ]),
@@ -151,7 +151,7 @@ void main() {
               allOf(
                 containsPair('artifact-name', artifact),
                 containsPair('runtime-mode', runtimeMode),
-                containsPair('build-gen-snapshot', true),
+                containsPair('build-x64-gen-snapshot', true),
                 containsPair('os', os),
               ),
       ]),

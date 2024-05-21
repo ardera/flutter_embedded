@@ -1,7 +1,6 @@
 const kRunnerImage = 'os';
 const kRunnerImageNice = 'os-nice';
 const kBuildEngine = 'build-engine';
-const kBuildGenSnapshot = 'build-gen-snapshot';
 const kBuildUniversal = 'build-universal';
 const kFlavor = 'flavor';
 const kRuntimeMode = 'runtime-mode';
@@ -12,9 +11,13 @@ const kArtifactName = 'artifact-name';
 const kCPU = 'cpu';
 const kArmCPU = 'arm-cpu';
 const kArmTune = 'arm-tune';
+const kBuildX64GenSnapshot = 'build-x64-gen-snapshot';
+const kBuildARMGenSnapshot = 'build-arm-gen-snapshot';
+const kBuildARM64GenSnapshot = 'build-arm64-gen-snapshot';
 const kX64GenSnapshotPath = 'x64-gen-snapshot-path';
 const kARMGenSnapshotPath = 'arm-gen-snapshot-path';
 const kARM64GenSnapshotPath = 'arm64-gen-snapshot-path';
+const kJobName = 'job-name';
 
 enum GithubRunner {
   ubuntuLatest('ubuntu-latest', 'Linux', OS.linux),
@@ -33,7 +36,16 @@ enum GithubRunner {
   String toString() => name;
 }
 
-enum OS { macOS, linux, windows }
+enum OS {
+  macOS,
+  linux,
+  windows;
+
+  @override
+  String toString() {
+    return name;
+  }
+}
 
 enum Arch {
   x64('X64', 'x64', 'x64'),
@@ -139,6 +151,7 @@ Map<String, Object> genTargetConfig(Target target) {
 
 Map<String, Object> genEngineConfig(Flavor flavor) {
   return {
+    kBuildEngine: true,
     kFlavor: flavor.toString(),
     kRuntimeMode: flavor.runtimeMode.toString(),
     kUnoptimized: flavor.unoptimized,
@@ -162,7 +175,6 @@ Map<String, Object> genGenSnapshotConfig(
   assert(mode.isAOT);
 
   return {
-    kBuildGenSnapshot: true,
     kFlavor: switch (mode) {
       RuntimeMode.profile => Flavor.profile,
       RuntimeMode.release => Flavor.release,
@@ -170,9 +182,12 @@ Map<String, Object> genGenSnapshotConfig(
     }
         .toString(),
     kRuntimeMode: mode.toString(),
-    kUnoptimized: false,
-    kSplitDebugSymbols: false,
-    kNoStripped: false,
+
+    // We can only cross-compile the gen_snapshots on linux right now.
+    kBuildARMGenSnapshot: runner.os == OS.linux || runner.arch == Arch.arm,
+    kBuildARM64GenSnapshot: runner.os == OS.linux || runner.arch == Arch.arm64,
+    kBuildX64GenSnapshot: runner.os == OS.linux || runner.arch == Arch.x64,
+
     kX64GenSnapshotPath: runner.os == target.os && runner.arch == Arch.x64
         ? 'gen_snapshot'
         : 'clang_x64/gen_snapshot',
@@ -189,14 +204,6 @@ Object generateMatrix() {
   final jobs = <Map<String, dynamic>>[];
 
   void addJob(Map<String, dynamic> job) {
-    for (final candidate in jobs) {
-      if (candidate.keys.every(
-          (key) => !job.containsKey(key) || candidate[key] == job[key])) {
-        candidate.addAll(job);
-        return;
-      }
-    }
-
     jobs.add(job);
   }
 
@@ -224,21 +231,32 @@ Object generateMatrix() {
 
       if (buildGenSnapshot) {
         for (final runner in runners) {
+          final buildEngine = runner.os == OS.linux;
+
           addJob({
+            if (buildEngine)
+              kJobName:
+                  'build $flavor engine, ${runner.os}-${runner.arch} $flavor gen_snapshot for ${target.os} $target'
+            else
+              kJobName:
+                  'build ${runner.os}-${runner.arch} $flavor gen_snapshot for ${target.os} $target',
             ...targetConfig,
 
             // Only build the engine on the linux runner.
-            if (runner == GithubRunner.ubuntuLatest) ...genEngineConfig(flavor),
+            if (buildEngine) ...genEngineConfig(flavor),
+
             ...genGenSnapshotConfig(
               flavor.runtimeMode,
               runner: runner,
               target: target,
             ),
+
             ...genRunnerConfig(runner),
           });
         }
       } else {
         addJob({
+          kJobName: 'build $flavor engine for ${target.os} $target',
           ...targetConfig,
           ...genEngineConfig(flavor),
           ...genRunnerConfig(GithubRunner.ubuntuLatest),
@@ -250,11 +268,14 @@ Object generateMatrix() {
   // add a job that builds the universal artifacts (flutter_embedder.h,
   // icudtl.dat)
   addJob({
+    kJobName: 'build universal artifacts',
     kArtifactName: 'universal',
     kRunnerImage: 'ubuntu',
     kNoStripped: false,
     kBuildEngine: false,
-    kBuildGenSnapshot: false,
+    kBuildARMGenSnapshot: false,
+    kBuildARM64GenSnapshot: false,
+    kBuildX64GenSnapshot: false,
     kBuildUniversal: false,
     kSplitDebugSymbols: false,
   });
