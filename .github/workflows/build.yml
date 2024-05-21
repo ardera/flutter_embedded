@@ -19,7 +19,7 @@ jobs:
       first-semver: ${{ steps.flutter-sdk-version.outputs.first-semver }}
       sdk-semvers: ${{ steps.flutter-sdk-version.outputs.semvers }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         
       - run: |
           echo github.ref: ${{ github.ref }}
@@ -37,14 +37,14 @@ jobs:
       
       - name: Cache flutter engine
         id: cache-engine
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           key: ${{ runner.os }}-flutter-engine
           path: flutter_engine
 
       # We need to checkout the complete flutter SDK to find the semver.
       - name: Checkout flutter engine
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: flutter/engine
           ref: ${{ steps.engine-commit.outputs.hash }}
@@ -94,9 +94,9 @@ jobs:
           - macos-13
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
-      - uses: actions/cache/restore@v3
+      - uses: actions/cache/restore@v4
         id: cache-lookup
         with:
           path: engine
@@ -106,7 +106,7 @@ jobs:
       - name: Install depot tools
         id: cache-depot-tools
         if: steps.cache-lookup.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/depot_tools
           key: ${{ runner.os }}-${{ runner.arch }}-depot-tools
@@ -211,7 +211,7 @@ jobs:
             popd
           done
       
-      - uses: actions/cache/save@v3
+      - uses: actions/cache/save@v4
         if: steps.cache-lookup.outputs.cache-hit != 'true'
         with:
           path: engine
@@ -226,7 +226,7 @@ jobs:
       matrix: ${{ steps.load-matrix.outputs.matrix }}
     steps:
       # checkout
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - working-directory: workflow_tool
         run: |
@@ -271,7 +271,7 @@ jobs:
       matrix: 
         include: ${{ fromJson(needs.load-matrix.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Log engine version & Build config
         run: |
@@ -312,7 +312,7 @@ jobs:
           
       - name: Cache depot tools
         id: cache-depot-tools
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/depot_tools
           key: ${{ runner.os }}-${{ runner.arch }}-depot-tools
@@ -335,7 +335,7 @@ jobs:
           gclient --version
           
       - name: Download cached engine sources
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         id: cache
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 10
@@ -517,84 +517,84 @@ jobs:
 
       - name: Upload x64 gen_snapshot
         if: matrix.build-x64-gen-snapshot
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gen-snapshot-${{ runner.os }}-X64-${{ matrix.artifact-name }}-${{ matrix.flavor }}
           path: pkg-x64-gen-snapshot/*
       
       - name: Upload x64 gen_snapshot (.tar.xz)
         if: matrix.build-x64-gen-snapshot
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gen-snapshot-${{ runner.os }}-X64-${{ matrix.artifact-name }}-${{ matrix.flavor }}-tar-xz
           path: gen-snapshot-${{ runner.os }}-X64-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz
 
       - name: Upload arm gen_snapshot
         if: matrix.build-arm-gen-snapshot
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gen-snapshot-${{ runner.os }}-ARM-${{ matrix.artifact-name }}-${{ matrix.flavor }}
           path: pkg-arm-gen-snapshot/*
         
       - name: Upload arm gen_snapshot (.tar.xz)
         if: matrix.build-arm-gen-snapshot
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gen-snapshot-${{ runner.os }}-ARM-${{ matrix.artifact-name }}-${{ matrix.flavor }}-tar-xz
           path: gen-snapshot-${{ runner.os }}-ARM-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz
     
       - name: Upload arm64 gen_snapshot
         if: matrix.build-arm64-gen-snapshot
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gen-snapshot-${{ runner.os }}-ARM64-${{ matrix.artifact-name }}-${{ matrix.flavor }}
           path: pkg-arm64-gen-snapshot/*
         
       - name: Upload arm64 gen_snapshot (.tar.xz)
         if: matrix.build-arm64-gen-snapshot
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gen-snapshot-${{ runner.os }}-ARM64-${{ matrix.artifact-name }}-${{ matrix.flavor }}-tar-xz
           path: gen-snapshot-${{ runner.os }}-ARM64-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz
 
       - name: Upload engine
         if: matrix.build-engine
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: engine-${{ matrix.artifact-name }}-${{ matrix.flavor }}
           path: pkg-engine/*
       
       - name: Upload engine (.tar.xz)
         if: matrix.build-engine
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: engine-${{ matrix.artifact-name }}-${{ matrix.flavor }}-tar-xz
           path: engine-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz
       
       - name: Upload engine debug symbols
         if: matrix.build-engine
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: engine-${{ matrix.artifact-name }}-${{ matrix.flavor }}
           path: pkg-engine-dbgsyms/*
       
       - name: Upload engine debug symbols (.tar.xz)
         if: matrix.build-engine
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: engine-dbgsyms-${{ matrix.artifact-name }}-${{ matrix.flavor }}-tar-xz
           path: engine-dbgsyms-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz
             
       - name: Upload universal artifacts
         if: matrix.build-universal
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: universal
           path: pkg-universal/*
       
       - name: Upload universal artifacts (.tar.xz)
         if: matrix.build-universal
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: universal-tar-xz
           path: universal.tar.xz
@@ -636,7 +636,7 @@ jobs:
           - artifact-name: x64-generic
             generic-arch-artifact-name: x64-generic
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Log engine version & Build config
         run: |
@@ -646,47 +646,47 @@ jobs:
           echo artifact name: ${{ matrix.artifact-name }}
           echo generic-arch-artifact-name: ${{ matrix.generic-arch-artifact-name }}
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: universal
           path: universal
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: engine-${{ matrix.generic-arch-artifact-name }}-debug
           path: debug
       
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: engine-${{ matrix.generic-arch-artifact-name }}-debug_unopt
           path: debug_unopt
         
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: engine-${{ matrix.artifact-name }}-profile
           path: profile
         
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: engine-${{ matrix.artifact-name }}-release
           path: release
       
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: gen-snapshot-Linux-${{ matrix.generic-arch-artifact-name }}-profile
           path: linux-gen-snapshot-profile
         
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: gen-snapshot-Linux-${{ matrix.generic-arch-artifact-name }}-release
           path: linux-gen-snapshot-release
       
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: gen-snapshot-macOS-${{ matrix.generic-arch-artifact-name }}-profile
           path: macos-gen-snapshot-profile
         
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: gen-snapshot-macOS-${{ matrix.generic-arch-artifact-name }}-release
           path: macos-gen-snapshot-release
@@ -745,7 +745,7 @@ jobs:
           tree -apugshDF
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
           path: |
@@ -764,14 +764,14 @@ jobs:
             pkg/gen_snapshot_macos_x64_release
       
       - name: Upload artifacts (.tar.xz)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}-tar-xz
           path: |
             ${{ matrix.artifact-name }}.tar.xz
       
       - name: Upload debug symbols (.tar.xz)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}-dbgsyms-tar-xz
           path: |
@@ -821,7 +821,7 @@ jobs:
           - artifact-name: aarch64-generic
             arch: aarch64
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       # TODO: Use the exact flutter version here
       - uses: subosito/flutter-action@v2
@@ -836,7 +836,7 @@ jobs:
           echo flutter sdk path: "$FLUTTER_SDK_PATH"
           echo "FLUTTER_SDK_PATH=$FLUTTER_SDK_PATH" >> $GITHUB_ENV
       
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
           path: binaries
@@ -892,7 +892,7 @@ jobs:
           cp -r test_app/build/flutter_assets app-assets
 
       - name: Upload app assets
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ runner.os }}-${{ matrix.artifact-name }}-${{ matrix.flavor }}-app-assets
           path: app-assets
@@ -941,12 +941,12 @@ jobs:
           - artifact-name: aarch64-generic
             runner: pi4-64
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.artifact-name }}-${{ matrix.flavor }}-app-assets
           path: app
       
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: ardera/flutter-pi
           path: flutter-pi
@@ -976,26 +976,26 @@ jobs:
     if: startsWith(github.ref, 'refs/tags')
    
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Log engine version
         run: |
           echo *** engine version: ***
           echo ${{ needs.resolve-version.outputs.engine-hash }}
       
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: ardera/flutter-engine-binaries-for-arm
           token: ${{ secrets.OLD_ENGINE_BINARIES_REPO_TOKEN }}
           path: engine-binaries
           ref: main
       
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: armv7-generic
           path: engine-binaries/arm
       
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: aarch64-generic
           path: engine-binaries/arm64
@@ -1027,14 +1027,14 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Log engine version
         run: |
           echo *** engine version: ***
           echo ${{ needs.resolve-version.outputs.engine-hash }}
       
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: all-artifacts
       
