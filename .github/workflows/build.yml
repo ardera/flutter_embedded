@@ -259,7 +259,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: [ resolve-version, populate-engine-src-cache, load-matrix ]
     strategy:
-      matrix: ${{ fromJson(needs.load-matrix.outputs.matrix) }}
+      matrix: 
+        include: ${{ fromJson(needs.load-matrix.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
 
