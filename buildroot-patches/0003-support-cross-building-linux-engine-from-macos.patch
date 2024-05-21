@@ -1,7 +1,7 @@
-From 70bee006d96218ca09bd901dd040d04c30f2d524 Mon Sep 17 00:00:00 2001
+From 09584799b53bdce62ebf5d439276e453108edc8e Mon Sep 17 00:00:00 2001
 From: Hannes Winkler <hanneswinkler2000@web.de>
 Date: Thu, 9 Nov 2023 15:04:30 +0100
-Subject: [PATCH 3/3] support cross-building linux engine from macos
+Subject: [PATCH 3/4] support cross-building linux engine from macos
 
 build/config/BUILDCONFIG.gn:
 Use mac toolchain when building for linux
@@ -89,5 +89,5 @@ index 140ec77..fcf2226 100644
    prefix = "arm-linux-gnueabihf-"
    if (toolchain_prefix != "") {
 -- 
-2.39.2
+2.41.0.windows.1
 

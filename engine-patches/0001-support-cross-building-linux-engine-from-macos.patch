@@ -1,7 +1,7 @@
-From b675c7884187f35e09677e2749a1ae203e6a3894 Mon Sep 17 00:00:00 2001
+From edc6512c3e515c6e0143fcff87704d77d6995358 Mon Sep 17 00:00:00 2001
 From: Hannes Winkler <hannes.winkler@littlemac.ci.kdab.com>
 Date: Wed, 8 Nov 2023 12:04:13 +0100
-Subject: [PATCH] support cross-building linux engine from macos
+Subject: [PATCH 1/2] support cross-building linux engine from macos
 
 gn: make linux arm64 build not be auto-detected as a host build
 linux embedder: always depend on `libflutter_linux_gtk.so` instead of
@@ -12,7 +12,7 @@ linux embedder: always depend on `libflutter_linux_gtk.so` instead of
  2 files changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/shell/platform/linux/BUILD.gn b/shell/platform/linux/BUILD.gn
-index 694aab2f52..639bb28506 100644
+index b2a8e800f8..608761b8fc 100644
 --- a/shell/platform/linux/BUILD.gn
 +++ b/shell/platform/linux/BUILD.gn
 @@ -303,8 +303,8 @@ zip_bundle("flutter_gtk") {
@@ -27,10 +27,10 @@ index 694aab2f52..639bb28506 100644
      {
        source = "$root_build_dir/gen_snapshot"
 diff --git a/tools/gn b/tools/gn
-index 6ceda84626..c18bcc3eb0 100755
+index 0be76e5477..b4fc590c3a 100755
 --- a/tools/gn
 +++ b/tools/gn
-@@ -96,8 +96,8 @@ def is_host_build(args):
+@@ -97,8 +97,8 @@ def is_host_build(args):
      return True
    # For linux arm64 builds, we cross compile from x64 hosts, so the
    # target_os='linux' and linux-cpu='arm64'
@@ -41,7 +41,7 @@ index 6ceda84626..c18bcc3eb0 100755
    # The Mac and host targets are redundant. Again, necessary to disambiguate
    # during cross-compilation.
    if args.target_os == 'mac':
-@@ -544,7 +544,7 @@ def to_gn_args(args):
+@@ -667,7 +667,7 @@ def to_gn_args(args):
    else:
      gn_args['skia_use_gl'] = args.target_os != 'fuchsia'
  
@@ -51,5 +51,5 @@ index 6ceda84626..c18bcc3eb0 100755
      # This is not necessarily needed but enabling this until we have a way to
      # build a macOS metal only shell and a gl only shell.
 -- 
-2.25.1
+2.41.0.windows.1
 

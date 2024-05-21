@@ -1,7 +1,7 @@
-From 233edbc3b10d30f09e9e9737b5d300f28665203a Mon Sep 17 00:00:00 2001
+From ef6c95ffd74aa6f8bba59fb30ff75bca86ec343c Mon Sep 17 00:00:00 2001
 From: Hannes Winkler <hanneswinkler2000@web.de>
 Date: Thu, 22 Jun 2023 16:30:00 +0000
-Subject: [PATCH 2/3] always include debug symbols
+Subject: [PATCH 2/4] always include debug symbols
 
 Always build with `-ggdb -fdebug-default-version=4` by default.
 Symbols are stripped later anyway and they're still useful for debugging.
@@ -39,5 +39,5 @@ index 2907974..09681c7 100644
  }
  
 -- 
-2.39.2
+2.41.0.windows.1
 
