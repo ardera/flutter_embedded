@@ -315,25 +315,13 @@ jobs:
         run: |
           echo "${{ github.workspace }}/depot_tools" >> $GITHUB_PATH
           
-
       - name: add depot_tools to path (windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           echo "${{ github.workspace }}\depot_tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       
-      - name: Run gclient --version (Unix)
-        if: runner.os != 'Windows'
-        env:
-          DEPOT_TOOLS_UPDATE: 1
-        run: |
-          gclient --version
-      
-      # Needs to be run using powershell, otherwise it doesn't
-      # create the git.bat that flutter/tools/gn assumes to be present.
-      - name: Run gclient --version (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
+      - name: Run gclient --version
         env:
           DEPOT_TOOLS_UPDATE: 1
         run: |
@@ -383,7 +371,6 @@ jobs:
 
       - name: Configure engine
         working-directory: engine/src
-        if: runner.os != 'Windows'
         run: |
           ./flutter/tools/gn \
             ${{ matrix.runtime-mode && format('--runtime-mode {0}', matrix.runtime-mode) || '' }} \
@@ -402,32 +389,7 @@ jobs:
             ${{ matrix.arm-cpu && format('--gn-args ''arm_cpu="{0}"''', matrix.arm-cpu) || '' }} \
             ${{ matrix.arm-tune && format('--gn-args ''arm_tune="{0}"''', matrix.arm-tune) || '' }}
       
-      - name: Configure engine
-        working-directory: engine/src
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          gclient --version
-          git.bat status
-          .\flutter\tools\gn `
-            ${{ matrix.runtime-mode && format('--runtime-mode {0}', matrix.runtime-mode) || '' }} `
-            ${{ matrix.cpu && '--target-os linux' || '' }} `
-            ${{ matrix.cpu && format('--linux-cpu {0}', matrix.cpu) || '' }} `
-            --arm-float-abi hard `
-            --target-dir build `
-            --embedder-for-target `
-            --disable-desktop-embeddings `
-            --no-build-glfw-shell `
-            --no-build-embedder-examples `
-            --no-enable-unittests `
-            --no-goma `
-            ${{ matrix.unoptimized && '--unoptimized' || ''}} `
-            ${{ matrix.nostripped && '--no-stripped' || ''}} `
-            ${{ matrix.arm-cpu && format('--gn-args ''arm_cpu="{0}"''', matrix.arm-cpu) || '' }} `
-            ${{ matrix.arm-tune && format('--gn-args ''arm_tune="{0}"''', matrix.arm-tune) || '' }}
-      
       - name: Build engine
-        shell: bash
         working-directory: engine/src/out/build
         run: |
           ninja \
