@@ -356,7 +356,7 @@ jobs:
       # on a buildroot patch.
       - name: Download linux sysroot
         working-directory: engine/src/build/linux/sysroot_scripts
-        if: matrix.cpu && runner.os == 'MacOS'
+        if: matrix.cpu && runner.os == 'macOS'
         timeout-minutes: 5
         run: |
           ./install-sysroot.py --arch=${{ matrix.cpu == 'x64' && 'amd64' || matrix.cpu }}
