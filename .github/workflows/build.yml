@@ -112,9 +112,11 @@ jobs:
       - name: Check if engine has dead libcxx repo
         id: check-dead-libcxx-repo
         if: steps.cache-lookup.outputs.cache-hit != 'true'
+        env:
+          WGET_COMMAND: ${{ runner.os == 'Windows' && 'C:\msys64\usr\bin\wget.exe' || 'wget' }}
         run: |
           echo "::group::Downloading DEPS file"
-          wget https://raw.githubusercontent.com/flutter/engine/${{ needs.resolve-version.outputs.engine-hash }}/DEPS
+          $WGET_COMMAND https://raw.githubusercontent.com/flutter/engine/${{ needs.resolve-version.outputs.engine-hash }}/DEPS
           echo "::endgroup::"
           
           echo "::group::DEPS file contents"
