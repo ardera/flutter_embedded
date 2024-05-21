@@ -60,7 +60,7 @@ jobs:
         os:
           - ubuntu-latest
           - macos-13
-
+          - windows-latest
     steps:
       - uses: actions/checkout@v4
       
@@ -293,6 +293,7 @@ jobs:
             ${{ github.workspace }}/depot_tools
 
       - name: Setup depot tools
+        shell: bash
         run: |
           echo GCLIENT_PY3=1 >> $GITHUB_ENV
           echo DEPOT_TOOLS_UPDATE=0 >> $GITHUB_ENV
@@ -314,7 +315,7 @@ jobs:
   
       - name: Apply patches
         working-directory: engine/src
-
+        shell: bash
         # use git apply instead of git am to avoid `Committer identity unknown` error
         run: |
           echo Applying buildroot patches... 
@@ -347,8 +348,7 @@ jobs:
 
       - name: Configure engine
         working-directory: engine
-        run: |
-          ./src/flutter/tools/gn \
+        run: ./src/flutter/tools/gn \
             ${{ matrix.runtime-mode && format('--runtime-mode {0}', matrix.runtime-mode) || '' }} \
             ${{ matrix.cpu && '--target-os linux' || '' }} \
             ${{ matrix.cpu && format('--linux-cpu {0}', matrix.cpu) || '' }} \

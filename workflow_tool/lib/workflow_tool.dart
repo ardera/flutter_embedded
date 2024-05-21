@@ -96,25 +96,61 @@ enum CPU {
 }
 
 enum Target {
-  armv7Generic(arch: Arch.arm, name: 'armv7-generic'),
-  aarch64Generic(arch: Arch.arm64, name: 'aarch64-generic'),
-  x64Generic(arch: Arch.x64, name: 'x64-generic'),
-  pi3(arch: Arch.arm, cpu: CPU.pi3, name: 'pi3'),
-  pi3_64(arch: Arch.arm64, cpu: CPU.pi3, name: 'pi3-64'),
-  pi4(arch: Arch.arm, cpu: CPU.pi4, name: 'pi4'),
-  pi4_64(arch: Arch.arm64, cpu: CPU.pi4, name: 'pi4-64');
+  armv7Generic(
+    arch: Arch.arm,
+    name: 'armv7-generic',
+    triple: 'armv7-linux-gnueabihf',
+  ),
+  aarch64Generic(
+    arch: Arch.arm64,
+    name: 'aarch64-generic',
+    triple: 'aarch64-linux-gnu',
+  ),
+  x64Generic(
+    arch: Arch.x64,
+    name: 'x64-generic',
+    triple: 'x86_64-linux-gnu',
+  ),
+  pi3(
+    arch: Arch.arm,
+    cpu: CPU.pi3,
+    name: 'pi3',
+    triple: 'armv7-linux-gnueabihf',
+  ),
+  pi3_64(
+    arch: Arch.arm64,
+    cpu: CPU.pi3,
+    name: 'pi3-64',
+    triple: 'aarch64-linux-gnu',
+  ),
+  pi4(
+    arch: Arch.arm,
+    cpu: CPU.pi4,
+    name: 'pi4',
+    triple: 'armv7-linux-gnueabihf',
+  ),
+  pi4_64(
+    arch: Arch.arm64,
+    cpu: CPU.pi4,
+    name: 'pi4-64',
+    triple: 'aarch64-linux-gnu',
+  );
 
   const Target({
     this.os = OS.linux,
     required this.arch,
     this.cpu = CPU.generic,
     required this.name,
+    required this.triple,
   });
 
   final OS os;
   final Arch arch;
   final CPU cpu;
   final String name;
+
+  final String triple;
+  String get compilerCpu => cpu.compilerCpu;
 
   @override
   String toString() => name;
@@ -223,13 +259,19 @@ Map<String, Object> genGenSnapshotConfig(
 
     kARMGenSnapshotPath: runner.os == OS.linux && target.arch == Arch.arm
         ? 'gen_snapshot'
-        : 'clang_arm/gen_snapshot',
+        : runner.os == OS.windows
+            ? 'gen_snapshot/gen_snapshot.exe'
+            : 'clang_arm/gen_snapshot',
     kARM64GenSnapshotPath: runner.os == OS.linux && target.arch == Arch.arm64
         ? 'gen_snapshot'
-        : 'clang_arm64/gen_snapshot',
+        : runner.os == OS.windows
+            ? 'gen_snapshot/gen_snapshot.exe'
+            : 'clang_arm64/gen_snapshot',
     kX64GenSnapshotPath: runner.os == OS.linux && target.arch == Arch.x64
         ? 'gen_snapshot'
-        : 'clang_x64/gen_snapshot',
+        : runner.os == OS.windows
+            ? 'gen_snapshot/gen_snapshot.exe'
+            : 'clang_x64/gen_snapshot',
   };
 }
 
@@ -245,7 +287,11 @@ Object generateMatrix() {
   final flavors = Flavor.values;
   final runtimeModes = RuntimeMode.values;
   final aotRuntimeModes = runtimeModes.where((mode) => mode.isAOT).toList();
-  final runners = {GithubRunner.ubuntuLatest, GithubRunner.macos13};
+  final runners = {
+    GithubRunner.ubuntuLatest,
+    GithubRunner.macos13,
+    GithubRunner.windowsLatest
+  };
 
   for (final target in targets) {
     final targetConfig = genTargetConfig(target);
@@ -267,26 +313,36 @@ Object generateMatrix() {
           // Only build the engine on the linux runner.
           final buildEngine = runner.os == OS.linux;
 
-          addJob({
-            if (buildEngine)
+          if (buildEngine) {
+            addJob({
               kJobName:
-                  'build engine, gen_snapshot (for: ${target.os} $target $flavor, host: ${runner.os})'
-            else
+                  'build engine, gen_snapshot (for: $target, flavor: $flavor, host: ${runner.os})',
+              ...targetConfig,
+              ...genEngineConfig(flavor),
+              ...genGenSnapshotConfig(
+                flavor.runtimeMode,
+                runner: runner,
+                target: target,
+              ),
+              ...genRunnerConfig(runner),
+            });
+          } else {
+            addJob({
               kJobName:
-                  'build gen_snapshot (for: ${target.os} $target $flavor, host: ${runner.os})',
-            ...targetConfig,
-            if (buildEngine) ...genEngineConfig(flavor),
-            ...genGenSnapshotConfig(
-              flavor.runtimeMode,
-              runner: runner,
-              target: target,
-            ),
-            ...genRunnerConfig(runner),
-          });
+                  'build gen_snapshot (for: $target, flavor: $flavor, host: ${runner.os})',
+              ...targetConfig,
+              ...genGenSnapshotConfig(
+                flavor.runtimeMode,
+                runner: runner,
+                target: target,
+              ),
+              ...genRunnerConfig(runner),
+            });
+          }
         }
       } else {
         addJob({
-          kJobName: 'build engine (for: ${target.os} $target $flavor)',
+          kJobName: 'build engine (for: $target, flavor: $flavor)',
           ...targetConfig,
           ...genEngineConfig(flavor),
           ...genRunnerConfig(GithubRunner.ubuntuLatest),
