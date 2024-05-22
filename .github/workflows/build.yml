@@ -690,7 +690,7 @@ jobs:
   build-app:
     name: 'Build test app'
     runs-on: ${{ matrix.os }}
-    needs: [resolve-version, package]
+    needs: [resolve-version]
     strategy:
       matrix:
         os:
@@ -891,7 +891,7 @@ jobs:
           - pi4-64
           # - armv7-generic
           - aarch64-generic
-          - x64-generic
+          # - x64-generic
         flavor:
           - debug_unopt
           - debug
@@ -920,8 +920,8 @@ jobs:
           - artifact-name: aarch64-generic
             runner: pi4-64
           
-          - artifact-name: x64-generic
-            runner: ubuntu-latest
+          # - artifact-name: x64-generic
+          #   runner: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
