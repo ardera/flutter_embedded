@@ -820,7 +820,9 @@ jobs:
       # Seems like this is necessary. Maybe it's not if we use a tar-file instead.
       - name: Make binaries executable
         run: |
-          chmod +x ./engine/libflutter_engine.so ./gen-snapshot/${{ matrix.gen-snapshot-name }}
+          chmod +x \
+            ./engine/libflutter_engine.so \
+            ${{ matrix.is-aot && format('./gen-snapshot/{0}', matrix.gen-snapshot-name) || '' }}
       
       # Show the complete file tree, and print all metadata (permissions, owner, group, filesize, last modification date)
       - name: Show file tree
