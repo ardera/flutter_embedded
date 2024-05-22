@@ -690,7 +690,7 @@ jobs:
   build-app:
     name: 'Build test app'
     runs-on: ${{ matrix.os }}
-    needs: [resolve-version]
+    needs: [resolve-version, build]
     strategy:
       matrix:
         os:
