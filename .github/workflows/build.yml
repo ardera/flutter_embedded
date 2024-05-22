@@ -933,6 +933,11 @@ jobs:
           repository: ardera/flutter-pi
           path: flutter-pi
       
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev fonts-liberation fontconfig libsystemd-dev libinput-dev libudev-dev libxkbcommon-dev
+
       - name: Configure
         working-directory: flutter-pi
         run: |
