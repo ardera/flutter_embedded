@@ -835,11 +835,11 @@ jobs:
         run: |
           flutter pub get
           flutter build bundle
-          cp ../engine/libflutter_engine build/flutter_assets/libflutter_engine.so
+          cp ../engine/libflutter_engine.so build/flutter_assets/libflutter_engine.so
           cp ../universal/icudtl.dat build/flutter_assets/
       
       - name: Build AOT bundle
-        if: matrix.runtime-mode == 'profile' || matrix.runtime-mode == 'release'
+        if: matrix.is-aot
         working-directory: test_app
         run: |
           $FLUTTER_SDK_PATH/bin/cache/dart-sdk/bin/dart \
