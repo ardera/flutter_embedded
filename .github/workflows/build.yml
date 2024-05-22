@@ -897,6 +897,17 @@ jobs:
           - debug
           - profile
           - release
+        exclude:
+          - artifact-name: pi3-64
+            flavor: debug_unopt
+          - artifact-name: pi3-64
+            flavor: debug
+
+          - artifact-name: pi4-64
+            flavor: debug_unopt
+          - artifact-name: pi4-64
+            flavor: debug
+            
         include:
           - flavor: debug_unopt
             runtime-mode: debug
