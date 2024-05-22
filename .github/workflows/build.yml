@@ -644,27 +644,25 @@ jobs:
       
       - uses: actions/download-artifact@v4
         with:
-          name: gen-snapshot-Linux-${{ matrix.generic-arch-artifact-name }}-profile
+          name: gen-snapshot-Linux-X64-${{ matrix.generic-arch-artifact-name }}-profile
           path: linux-gen-snapshot-profile
         
       - uses: actions/download-artifact@v4
         with:
-          name: gen-snapshot-Linux-${{ matrix.generic-arch-artifact-name }}-release
+          name: gen-snapshot-Linux-X64-${{ matrix.generic-arch-artifact-name }}-release
           path: linux-gen-snapshot-release
       
       - uses: actions/download-artifact@v4
         with:
-          name: gen-snapshot-macOS-${{ matrix.generic-arch-artifact-name }}-profile
+          name: gen-snapshot-macOS-X64-${{ matrix.generic-arch-artifact-name }}-profile
           path: macos-gen-snapshot-profile
         
       - uses: actions/download-artifact@v4
         with:
-          name: gen-snapshot-macOS-${{ matrix.generic-arch-artifact-name }}-release
+          name: gen-snapshot-macOS-X64-${{ matrix.generic-arch-artifact-name }}-release
           path: macos-gen-snapshot-release
-          
+  
       - name: Package artifacts
-        env:
-          XZ_DEFAULTS: "-T 0"
         run: |
           mkdir -p pkg
           
@@ -695,8 +693,6 @@ jobs:
           popd
       
       - name: Package debug symbols
-        env:
-          XZ_DEFAULTS: "-T 0"
         run: |
           mkdir -p pkg-dbgsyms
 
@@ -757,18 +753,41 @@ jobs:
         os:
           - macos-13
           - ubuntu-latest
+          - windows-latest
         artifact-name:
+          - armv7-generic
+          - aarch64-generic
+          - x64-generic
           - pi3
           - pi3-64
           - pi4
           - pi4-64
-          - armv7-generic
-          - aarch64-generic
         flavor:
           - debug_unopt
           - debug
           - profile
           - release
+        exclude:
+          - artifact-name: pi3
+            flavor: debug_unopt
+          - artifact-name: pi3
+            flavor: debug
+          
+          - artifact-name: pi3-64
+            flavor: debug_unopt
+          - artifact-name: pi3-64
+            flavor: debug
+          
+          - artifact-name: pi4
+            flavor: debug_unopt
+          - artifact-name: pi4
+            flavor: debug
+          
+          - artifact-name: pi4-64
+            flavor: debug_unopt
+          - artifact-name: pi4-64
+            flavor: debug
+          
         include:
           - flavor: debug_unopt
             runtime-mode: debug
@@ -804,7 +823,9 @@ jobs:
       - name: Determine flutter SDK path
         run: |
           FLUTTER_SDK_PATH=$(dirname $(dirname $(which flutter)))
+          
           echo flutter sdk path: "$FLUTTER_SDK_PATH"
+
           echo "FLUTTER_SDK_PATH=$FLUTTER_SDK_PATH" >> $GITHUB_ENV
       
       - uses: actions/download-artifact@v4
@@ -877,6 +898,7 @@ jobs:
         os:
           - Linux
           - macOS
+          - Windows
         artifact-name:
           # - pi3
           - pi3-64
