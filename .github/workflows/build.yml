@@ -571,41 +571,14 @@ jobs:
           path: universal.tar.xz
 
   package:
-    name: 'Package artifacts'
+    name: 'Package artifacts for old engine binaries repo'
     runs-on: ubuntu-latest
     needs: [build, resolve-version]
     strategy:
       matrix:
         artifact-name:
-          - pi3
-          - pi3-64
-          - pi4
-          - pi4-64
           - armv7-generic
           - aarch64-generic
-          - x64-generic
-        
-        include:
-          # For each artifact (target), we also have an architecture-generic variant.
-          # We use those for debug & debug_unopt, since we don't actually build architecture-specific
-          # artifacts there.
-          - artifact-name: pi3
-            generic-arch-artifact-name: armv7-generic
-          - artifact-name: pi3-64
-            generic-arch-artifact-name: aarch64-generic
-
-          - artifact-name: pi4
-            generic-arch-artifact-name: armv7-generic
-          - artifact-name: pi4-64
-            generic-arch-artifact-name: aarch64-generic
-
-          - artifact-name: armv7-generic
-            generic-arch-artifact-name: armv7-generic
-          - artifact-name: aarch64-generic
-            generic-arch-artifact-name: aarch64-generic
-          
-          - artifact-name: x64-generic
-            generic-arch-artifact-name: x64-generic
     steps:
       - uses: actions/checkout@v4
       
@@ -615,7 +588,6 @@ jobs:
           echo ${{ needs.resolve-version.outputs.engine-hash }}
           echo '*** config: ***'
           echo artifact name: ${{ matrix.artifact-name }}
-          echo generic-arch-artifact-name: ${{ matrix.generic-arch-artifact-name }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -624,13 +596,13 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: engine-${{ matrix.generic-arch-artifact-name }}-debug
-          path: debug
-      
+          name: engine-${{ matrix.artifact-name }}-debug_unopt
+          path: debug_unopt
+          
       - uses: actions/download-artifact@v4
         with:
-          name: engine-${{ matrix.generic-arch-artifact-name }}-debug_unopt
-          path: debug_unopt
+          name: engine-${{ matrix.artifact-name }}-debug
+          path: debug
         
       - uses: actions/download-artifact@v4
         with:
@@ -644,22 +616,22 @@ jobs:
       
       - uses: actions/download-artifact@v4
         with:
-          name: gen-snapshot-Linux-X64-${{ matrix.generic-arch-artifact-name }}-profile
+          name: gen-snapshot-Linux-X64-${{ matrix.artifact-name }}-profile
           path: linux-gen-snapshot-profile
         
       - uses: actions/download-artifact@v4
         with:
-          name: gen-snapshot-Linux-X64-${{ matrix.generic-arch-artifact-name }}-release
+          name: gen-snapshot-Linux-X64-${{ matrix.artifact-name }}-release
           path: linux-gen-snapshot-release
       
       - uses: actions/download-artifact@v4
         with:
-          name: gen-snapshot-macOS-X64-${{ matrix.generic-arch-artifact-name }}-profile
+          name: gen-snapshot-macOS-X64-${{ matrix.artifact-name }}-profile
           path: macos-gen-snapshot-profile
         
       - uses: actions/download-artifact@v4
         with:
-          name: gen-snapshot-macOS-X64-${{ matrix.generic-arch-artifact-name }}-release
+          name: gen-snapshot-macOS-X64-${{ matrix.artifact-name }}-release
           path: macos-gen-snapshot-release
   
       - name: Package artifacts
@@ -667,7 +639,6 @@ jobs:
           mkdir -p pkg
           
           pushd pkg
-          mv ../engine.version.stable ./engine.version
           mv ../debug_unopt/libflutter_engine.so ./libflutter_engine.so.debug_unopt
           mv ../debug/libflutter_engine.so ./libflutter_engine.so.debug
           mv ../profile/libflutter_engine.so ./libflutter_engine.so.profile
@@ -692,19 +663,6 @@ jobs:
           tar -cJvf ../${{ matrix.artifact-name }}.tar.xz *
           popd
       
-      - name: Package debug symbols
-        run: |
-          mkdir -p pkg-dbgsyms
-
-          pushd pkg-dbgsyms
-          mv ../debug_unopt/libflutter_engine.dbgsyms ./libflutter_engine.debug_unopt.dbgsyms
-          mv ../debug/libflutter_engine.dbgsyms ./libflutter_engine.debug.dbgsyms
-          mv ../profile/libflutter_engine.dbgsyms ./libflutter_engine.profile.dbgsyms
-          mv ../release/libflutter_engine.dbgsyms ./libflutter_engine.release.dbgsyms
-
-          tar -cJvf ../${{ matrix.artifact-name }}-dbgsyms.tar.xz *
-          popd
-      
       # Show the complete file tree, and print all metadata (permissions, owner, group, filesize, last modification date)
       - name: Show file tree
         run: |
@@ -717,32 +675,17 @@ jobs:
           name: ${{ matrix.artifact-name }}
           path: |
             pkg/engine.version
+            pkg/dart-sdk.version
+            pkg/flutter_embedder.h
+            pkg/icudtl.dat
             pkg/libflutter_engine.so.debug_unopt
             pkg/libflutter_engine.so.debug
             pkg/libflutter_engine.so.profile
             pkg/libflutter_engine.so.release
-            pkg/flutter_embedder.h
-            pkg/icudtl.dat
-            pkg/engine.version
-            pkg/dart-sdk.version
             pkg/gen_snapshot_linux_x64_profile
             pkg/gen_snapshot_linux_x64_release
             pkg/gen_snapshot_macos_x64_profile
             pkg/gen_snapshot_macos_x64_release
-      
-      - name: Upload artifacts (.tar.xz)
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact-name }}-tar-xz
-          path: |
-            ${{ matrix.artifact-name }}.tar.xz
-      
-      - name: Upload debug symbols (.tar.xz)
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact-name }}-dbgsyms-tar-xz
-          path: |
-            ${{ matrix.artifact-name }}-dbgsyms.tar.xz
   
   build-app:
     name: 'Build test app'
@@ -767,6 +710,7 @@ jobs:
           - debug
           - profile
           - release
+        
         exclude:
           - artifact-name: pi3
             flavor: debug_unopt
@@ -791,25 +735,54 @@ jobs:
         include:
           - flavor: debug_unopt
             runtime-mode: debug
+            is-aot: false
+
           - flavor: debug
             runtime-mode: debug
+            is-aot: false
+
           - flavor: profile
             runtime-mode: profile
+            is-aot: true
+
           - flavor: release
             runtime-mode: release
+            is-aot: true
           
           - artifact-name: pi3
             arch: armv7
+            generic-arch-artifact-name: armv7-generic
+            
           - artifact-name: pi3-64
             arch: aarch64
+            generic-arch-artifact-name: aarch64-generic
+            
           - artifact-name: pi4
             arch: armv7
+            generic-arch-artifact-name: armv7-generic
+            
           - artifact-name: pi4-64
             arch: aarch64
+            generic-arch-artifact-name: aarch64-generic
+            
           - artifact-name: armv7-generic
             arch: armv7
+            generic-arch-artifact-name: armv7-generic
+
           - artifact-name: aarch64-generic
             arch: aarch64
+            generic-arch-artifact-name: aarch64-generic
+          
+          - artifact-name: x64-generic
+            arch: x64
+            generic-arch-artifact-name: x64-generic
+          
+          - os: macos-13
+            gen-snapshot-name: 'gen_snapshot'
+          - os: ubuntu-latest
+            gen-snapshot-name: 'gen_snapshot'
+          - os: windows-latest
+            gen-snapshot-name: 'gen_snapshot.exe'
     steps:
       - uses: actions/checkout@v4
       
@@ -830,14 +803,24 @@ jobs:
       
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.artifact-name }}
-          path: binaries
+          name: universal
+          path: universal
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: engine-${{ matrix.artifact-name }}-${{ matrix.flavor }}
+          path: engine
+
+      - uses: actions/download-artifact@v4
+        if: ${{ matrix.is-aot }}
+        with:
+          name: gen-snapshot-${{ runner.os }}-${{ runner.arch }}-${{ matrix.generic-arch-artifact-name }}-${{ matrix.flavor }}
+          path: gen-snapshot
       
       # Seems like this is necessary. Maybe it's not if we use a tar-file instead.
       - name: Make binaries executable
-        working-directory: binaries
         run: |
-          chmod +x ./libflutter_engine.so* ./gen_snapshot*
+          chmod +x ./engine/libflutter_engine.so ./gen-snapshot/${{ matrix.gen-snapshot-name }}
       
       # Show the complete file tree, and print all metadata (permissions, owner, group, filesize, last modification date)
       - name: Show file tree
@@ -850,8 +833,8 @@ jobs:
         run: |
           flutter pub get
           flutter build bundle
-          cp ../binaries/libflutter_engine.so.${{ matrix.flavor }} build/flutter_assets/libflutter_engine.so
-          cp ../binaries/icudtl.dat build/flutter_assets/
+          cp ../engine/libflutter_engine build/flutter_assets/libflutter_engine.so
+          cp ../universal/icudtl.dat build/flutter_assets/
       
       - name: Build AOT bundle
         if: matrix.runtime-mode == 'profile' || matrix.runtime-mode == 'release'
@@ -870,7 +853,7 @@ jobs:
             --depfile build/kernel_snapshot.d \
             package:test_app/main.dart
             
-          ../binaries/gen_snapshot_${{ matrix.os == 'macos-13' && 'macos_x64' || 'linux_x64' }}_${{ matrix.runtime-mode }} \
+          ../gen-snapshot/${{ matrix.gen-snapshot-name }} \
             --deterministic \
             --snapshot_kind=app-aot-elf \
             --elf=build/flutter_assets/app.so \
@@ -906,6 +889,7 @@ jobs:
           - pi4-64
           # - armv7-generic
           - aarch64-generic
+          - x64-generic
         flavor:
           - debug_unopt
           - debug
@@ -933,6 +917,9 @@ jobs:
             # runner: pi4-32
           - artifact-name: aarch64-generic
             runner: pi4-64
+          
+          - artifact-name: x64-generic
+            runner: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
