@@ -457,7 +457,7 @@ jobs:
           mkdir -p pkg-arm-gen-snapshot
 
           pushd pkg-arm-gen-snapshot
-          cp $BUILD_DIR/${{ matrix.x64-gen-snapshot-path }} $BUILD_DIR/compile_commands.json .
+          cp $BUILD_DIR/${{ matrix.arm-gen-snapshot-path }} $BUILD_DIR/compile_commands.json .
           
           tar -cJvf ../gen-snapshot-${{ runner.os }}-ARM-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz *
 
@@ -467,7 +467,7 @@ jobs:
           mkdir -p pkg-arm64-gen-snapshot
 
           pushd pkg-arm64-gen-snapshot
-          cp $BUILD_DIR/${{ matrix.x64-gen-snapshot-path }} $BUILD_DIR/compile_commands.json .
+          cp $BUILD_DIR/${{ matrix.arm64-gen-snapshot-path }} $BUILD_DIR/compile_commands.json .
           
           tar -cJvf ../gen-snapshot-${{ runner.os }}-ARM64-${{ matrix.artifact-name }}-${{ matrix.flavor }}.tar.xz *
   
