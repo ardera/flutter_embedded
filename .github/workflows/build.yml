@@ -887,14 +887,21 @@ jobs:
           rm -rf test_app/build
       
       - name: Build app using flutterpi_tool
+        working-directory: test_app
         run: |
+          echo "::group::flutter pub get"
           flutter pub get
+          echo "::endgroup::"
+          
+          echo "::group::flutterpi_tool build"
           flutterpi_tool \
             build ${{ matrix.target-flags}} ${{ matrix.runtime-mode-flags }} \
             --github-artifacts-repo ${{ github.repository }} \
             --github-artifacts-runid ${{ github.run_id }} \
             --github-artifacts-auth-token ${{ secrets.GITHUB_TOKEN }}
-          cp -r test_app/build/flutter_assets app-assets
+          echo "::endgroup::"
+          
+          cp -r build/flutter_assets ../app-assets
 
       - name: Upload app assets
         uses: actions/upload-artifact@v4
