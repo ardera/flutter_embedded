@@ -894,7 +894,7 @@ jobs:
           echo "::endgroup::"
           
           echo "::group::flutterpi_tool build"
-          flutterpi_tool \
+          dart pub global run flutterpi_tool \
             build ${{ matrix.target-flags}} ${{ matrix.runtime-mode-flags }} \
             --github-artifacts-repo ${{ github.repository }} \
             --github-artifacts-runid ${{ github.run_id }} \
