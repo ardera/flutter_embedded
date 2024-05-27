@@ -736,46 +736,57 @@ jobs:
           - flavor: debug_unopt
             runtime-mode: debug
             is-aot: false
+            runtime-mode-flags: '--debug-unoptimized'
 
           - flavor: debug
             runtime-mode: debug
             is-aot: false
+            runtime-mode-flags: '--debug'
 
           - flavor: profile
             runtime-mode: profile
             is-aot: true
+            runtime-mode-flags: '--profile'
 
           - flavor: release
             runtime-mode: release
             is-aot: true
+            runtime-mode-flags: '--release'
           
           - artifact-name: pi3
             arch: armv7
             generic-arch-artifact-name: armv7-generic
+            target-flags: '--arch=arm --cpu=pi3'
             
           - artifact-name: pi3-64
             arch: aarch64
             generic-arch-artifact-name: aarch64-generic
+            target-flags: '--arch=arm64 --cpu=pi3'
             
           - artifact-name: pi4
             arch: armv7
             generic-arch-artifact-name: armv7-generic
+            target-flags: '--arch=arm --cpu=pi4'
             
           - artifact-name: pi4-64
             arch: aarch64
             generic-arch-artifact-name: aarch64-generic
+            target-flags: '--arch=arm64 --cpu=pi4'
             
           - artifact-name: armv7-generic
             arch: armv7
             generic-arch-artifact-name: armv7-generic
+            target-flags: '--arch=arm --cpu=generic'
 
           - artifact-name: aarch64-generic
             arch: aarch64
             generic-arch-artifact-name: aarch64-generic
+            target-flags: '--arch=arm64 --cpu=pi3'
           
           - artifact-name: x64-generic
             arch: x64
             generic-arch-artifact-name: x64-generic
+            target-flags: '--arch=x64 --cpu=pi3'
           
           - os: macos-13
             gen-snapshot-name: 'gen_snapshot'
@@ -800,6 +811,10 @@ jobs:
           echo flutter sdk path: "$FLUTTER_SDK_PATH"
 
           echo "FLUTTER_SDK_PATH=$FLUTTER_SDK_PATH" >> $GITHUB_ENV
+      
+      - name: Install flutterpi_tool
+        run: |
+          flutter pub global activate -sgit https://github.com/ardera/flutterpi_tool.git --git-ref feat/support-more-hosts
       
       - uses: actions/download-artifact@v4
         with:
@@ -832,6 +847,7 @@ jobs:
           tree -apugshDF
       
       - working-directory: test_app
+        if: false
         run: |
           flutter pub get
           flutter build bundle
@@ -839,7 +855,7 @@ jobs:
           cp ../universal/icudtl.dat build/flutter_assets/
       
       - name: Build AOT bundle
-        if: matrix.is-aot
+        if: matrix.is-aot && false
         working-directory: test_app
         run: |
           $FLUTTER_SDK_PATH/bin/cache/dart-sdk/bin/dart \
@@ -865,7 +881,19 @@ jobs:
             build/kernel_snapshot.dill
             
       - name: Copy asset bundle
+        if: false
         run: |
+          cp -r test_app/build/flutter_assets app-assets
+          rm -rf test_app/build
+      
+      - name: Build app using flutterpi_tool
+        run: |
+          flutter pub get
+          flutterpi_tool \
+            build ${{ matrix.target-flags}} ${{ matrix.runtime-mode-flags }} \
+            --github-artifacts-repo ${{ github.repository }} \
+            --github-artifacts-runid ${{ github.run_id }} \
+            --github-artifacts-auth-token ${{ secrets.GITHUB_TOKEN }}
           cp -r test_app/build/flutter_assets app-assets
 
       - name: Upload app assets
