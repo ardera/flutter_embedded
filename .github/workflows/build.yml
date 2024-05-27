@@ -786,7 +786,7 @@ jobs:
           - artifact-name: x64-generic
             arch: x64
             generic-arch-artifact-name: x64-generic
-            target-flags: '--arch=x64 --cpu=pi3'
+            target-flags: '--arch=x64'
           
           - os: macos-13
             gen-snapshot-name: 'gen_snapshot'
