@@ -195,6 +195,8 @@ jobs:
       
       - uses: actions/cache/save@v4
         if: steps.cache-lookup.outputs.cache-hit != 'true'
+        env:
+          ZSTD_CLEVEL: 19
         with:
           path: engine
           key: engine-${{ needs.resolve-version.outputs.engine-hash }}-${{ runner.os }}-${{ runner.arch }}
