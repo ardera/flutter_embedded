@@ -896,6 +896,7 @@ jobs:
           echo "::group::flutterpi_tool build"
           dart pub global run flutterpi_tool \
             build ${{ matrix.target-flags}} ${{ matrix.runtime-mode-flags }} \
+            --verbose \
             --github-artifacts-repo ${{ github.repository }} \
             --github-artifacts-runid ${{ github.run_id }} \
             --github-artifacts-auth-token ${{ secrets.GITHUB_TOKEN }}
