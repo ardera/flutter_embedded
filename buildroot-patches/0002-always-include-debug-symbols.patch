@@ -1,4 +1,4 @@
-From ef6c95ffd74aa6f8bba59fb30ff75bca86ec343c Mon Sep 17 00:00:00 2001
+From f8148f799ea7f17a64180f1deb799de92ee090e0 Mon Sep 17 00:00:00 2001
 From: Hannes Winkler <hanneswinkler2000@web.de>
 Date: Thu, 22 Jun 2023 16:30:00 +0000
 Subject: [PATCH 2/4] always include debug symbols
@@ -10,10 +10,10 @@ Symbols are stripped later anyway and they're still useful for debugging.
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 2907974..09681c7 100644
+index d65f561..b184499 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -1021,7 +1021,7 @@ config("symbols") {
+@@ -1015,7 +1015,7 @@ config("symbols") {
        ldflags = [ "-gsource-map" ]
      }
    } else {
@@ -22,7 +22,7 @@ index 2907974..09681c7 100644
    }
  }
  
-@@ -1030,13 +1030,13 @@ config("minimal_symbols") {
+@@ -1024,13 +1024,13 @@ config("minimal_symbols") {
      # Linker symbols for backtraces only.
      ldflags = [ "/DEBUG" ]
    } else {
@@ -39,5 +39,5 @@ index 2907974..09681c7 100644
  }
  
 -- 
-2.41.0.windows.1
+2.43.0
 

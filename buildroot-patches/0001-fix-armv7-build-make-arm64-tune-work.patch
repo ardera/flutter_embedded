@@ -1,4 +1,4 @@
-From fc86998e03c4b7510548c1aba1549a03b80a96d6 Mon Sep 17 00:00:00 2001
+From bc53f5e909d333b67be09d16d599f246f95c870f Mon Sep 17 00:00:00 2001
 From: Hannes Winkler <hanneswinkler2000@web.de>
 Date: Wed, 11 Aug 2021 02:21:25 +0200
 Subject: [PATCH 1/4] fix armv7 build - make arm64 tune work
@@ -57,7 +57,7 @@ index 02834cd..a2897ea 100644
        arm_float_abi = "softfp"
      }
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 51d0b97..2907974 100644
+index d38a4cf..d65f561 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
 @@ -4,7 +4,7 @@
@@ -69,7 +69,7 @@ index 51d0b97..2907974 100644
    import("//build/config/arm.gni")
  }
  if (is_posix) {
-@@ -222,30 +222,78 @@ config("compiler") {
+@@ -215,30 +215,78 @@ config("compiler") {
          ]
        }
      } else if (current_cpu == "arm") {
@@ -171,10 +171,10 @@ index 51d0b97..2907974 100644
      }
  
 diff --git a/build/config/sysroot.gni b/build/config/sysroot.gni
-index 727a6b1..3bf0f14 100644
+index 5f7e48a..8bb5841 100644
 --- a/build/config/sysroot.gni
 +++ b/build/config/sysroot.gni
-@@ -27,10 +27,16 @@ if (current_toolchain == default_toolchain && target_sysroot != "") {
+@@ -25,10 +25,16 @@ if (current_toolchain == default_toolchain && target_sysroot != "") {
      if (current_cpu == "x64") {
        sysroot =
            rebase_path("//build/linux/debian_sid_amd64-sysroot", root_build_dir)
@@ -193,5 +193,5 @@ index 727a6b1..3bf0f14 100644
          exec_script("//build/dir_exists.py", [ sysroot ], "string") == "True",
          "Missing sysroot ($sysroot). To fix, run: build/linux/sysroot_scripts/install-sysroot.py --arch=$current_cpu")
 -- 
-2.41.0.windows.1
+2.43.0
 

@@ -1,4 +1,4 @@
-From 09584799b53bdce62ebf5d439276e453108edc8e Mon Sep 17 00:00:00 2001
+From b9c50d37148b538ed5fa7842e8c190593fbb4a98 Mon Sep 17 00:00:00 2001
 From: Hannes Winkler <hanneswinkler2000@web.de>
 Date: Thu, 9 Nov 2023 15:04:30 +0100
 Subject: [PATCH 3/4] support cross-building linux engine from macos
@@ -18,10 +18,10 @@ Use //buildtools/mac-x64/clang... when running on mac
  3 files changed, 19 insertions(+), 11 deletions(-)
 
 diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
-index 87ea4c5..034399f 100644
+index b74b2e2..b54e515 100644
 --- a/build/config/BUILDCONFIG.gn
 +++ b/build/config/BUILDCONFIG.gn
-@@ -551,16 +551,20 @@ if (custom_toolchain != "") {
+@@ -552,16 +552,20 @@ if (custom_toolchain != "") {
      set_default_toolchain("//build/toolchain/android:$current_cpu")
    }
  } else if (is_linux) {
@@ -61,10 +61,10 @@ index d3e7664..6dfbe42 100755
  
    if options.print_hash:
 diff --git a/build/toolchain/linux/BUILD.gn b/build/toolchain/linux/BUILD.gn
-index 140ec77..fcf2226 100644
+index 3d603a0..9995952 100644
 --- a/build/toolchain/linux/BUILD.gn
 +++ b/build/toolchain/linux/BUILD.gn
-@@ -32,14 +32,18 @@ if (use_goma) {
+@@ -33,14 +33,18 @@ if (use_rbe) {
    link_prefix = ""
  }
  
@@ -89,5 +89,5 @@ index 140ec77..fcf2226 100644
    prefix = "arm-linux-gnueabihf-"
    if (toolchain_prefix != "") {
 -- 
-2.41.0.windows.1
+2.43.0
 
