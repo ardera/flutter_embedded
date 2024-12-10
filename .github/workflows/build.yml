@@ -73,7 +73,11 @@ jobs:
           - windows-latest
     steps:
       - uses: actions/checkout@v4
-      
+
+      - run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - uses: actions/cache/restore@v4
         id: cache-lookup
         with:
@@ -315,19 +319,21 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           echo "${{ github.workspace }}/depot_tools" >> $GITHUB_PATH
-          
+
       - name: add depot_tools to path (windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           echo "${{ github.workspace }}\depot_tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Run gclient --version
         env:
           DEPOT_TOOLS_UPDATE: 1
         run: |
           gclient --version
-          
+
       - name: Download cached engine sources
         uses: actions/cache/restore@v4
         id: cache
