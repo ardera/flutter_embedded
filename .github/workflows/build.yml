@@ -140,7 +140,7 @@ jobs:
         env:
           DEPOT_TOOLS_UPDATE: 1
         run: |
-          gclient sync --no-history --shallow --revision .@${{ needs.resolve-version.outputs.semver }} -R -D
+          gclient sync --no-history --shallow --revision .@${{ needs.resolve-version.outputs.semver || needs.resolve-version.outputs.hash }} -R -D
       
       - name: Install linux arm sysroot
         if: steps.cache-lookup.outputs.cache-hit != 'true' && runner.os == 'Linux'
